@@ -1,0 +1,102 @@
+# Copyright (C) 2026 Zachary Melo
+# Doli Catalog - Francais
+
+# Module
+Module500410Name = Doli Catalog
+Module500410Desc = Selecteur visuel et arborescent de produits et services pour devis, commandes, factures et nomenclatures
+
+# Permissions
+Permission500410 = Utiliser le navigateur de catalogue Doli Catalog
+
+# Bouton
+DoliCatalogBrowseCatalog = Parcourir le catalogue
+DoliCatalogBrowseCatalogTooltip = Choisir des produits et services depuis l'arborescence des categories
+
+# Fenetre
+DoliCatalogTitle = Catalogue produits et services
+DoliCatalogSearchPlaceholder = Rechercher par reference, libelle, description ou code-barres...
+DoliCatalogRoot = Catalogue
+DoliCatalogCategories = Categories
+DoliCatalogItems = articles
+DoliCatalogFavorites = Favoris
+DoliCatalogRecent = Recemment utilises
+DoliCatalogAllTypes = Tous les types
+DoliCatalogAllWarehouses = Tous les entrepots
+DoliCatalogLoading = Chargement...
+DoliCatalogNoResults = Aucun article correspondant.
+DoliCatalogEmptyCategory = Cette categorie ne contient aucun article.
+DoliCatalogTruncated = Il existe plus de resultats que ceux affiches. Affinez la recherche ou ouvrez une sous-categorie.
+DoliCatalogError = Le catalogue n'a pas pu etre charge.
+DoliCatalogAddSelected = Ajouter la selection
+DoliCatalogAdding = Ajout en cours...
+DoliCatalogSelected = selectionnes
+DoliCatalogNothingSelected = Aucune selection
+DoliCatalogClearSelection = Effacer
+DoliCatalogAdded = Lignes ajoutees
+DoliCatalogAddFavorite = Ajouter aux favoris
+DoliCatalogRemoveFavorite = Retirer des favoris
+DoliCatalogSearchAll = Rechercher dans tout le catalogue
+
+# Configuration
+DoliCatalogSetup = Configuration de Doli Catalog
+DoliCatalogSetupIntro = Doli Catalog ajoute un bouton "Parcourir le catalogue" au formulaire de saisie des lignes des propositions commerciales, commandes clients, factures clients, demandes de prix fournisseur, commandes fournisseur et factures fournisseur. Le module lit les categories et produits natifs de Dolibarr ; aucune modification du noyau n'est effectuee.
+DoliCatalogSettings = Parametres
+DoliCatalogDisplay = Affichage
+DoliCatalogBehaviour = Comportement
+
+ShowStock = Afficher le stock
+ShowStockDesc = Affiche une colonne de stock, et un filtre entrepot si le module Stock est actif.
+ShowTtc = Afficher le prix TTC
+ShowTtcDesc = Ajoute une seconde colonne de prix affichant le montant TTC.
+ShowImages = Afficher les vignettes
+ShowImagesDesc = Affiche la premiere photo du produit sur chaque ligne. A desactiver sur les tres gros catalogues.
+ShowDuration = Afficher la duree des services
+ShowDurationDesc = Affiche la colonne duree pour les articles de type Service.
+EnableFavorites = Activer les favoris
+EnableFavoritesDesc = Permet a chaque utilisateur de marquer des articles et de les retrouver dans un onglet Favoris.
+EnableRecent = Activer l'historique
+EnableRecentDesc = Conserve par utilisateur la liste des articles recemment choisis.
+HideEmptyCategories = Masquer les categories vides
+HideEmptyCategoriesDesc = N'affiche pas les categories ne contenant aucun article correspondant.
+MaxResults = Nombre maximum de lignes
+MaxResultsDesc = Nombre de lignes retournees par requete avant troncature. Entre 1 et 500.
+RecentCount = Articles recents conserves
+RecentCountDesc = Nombre d'articles recemment utilises memorises par utilisateur.
+DefaultQty = Quantite par defaut
+DefaultQtyDesc = Quantite pre-remplie lors de la selection d'un article.
+ButtonIcon = Icone du bouton
+ButtonIconDesc = Classe Font Awesome utilisee sur le bouton "Parcourir le catalogue", par exemple fa-th-large ou fa-list.
+RootCategories = Categories racines
+RootCategoriesDesc = Identifiants de categories produits separes par des virgules a afficher au premier niveau. Laisser vide pour afficher toutes les categories racines.
+DebugMode = Mode debogage
+DebugModeDesc = Expose un point de diagnostic sur /custom/dolicatalog/ajax/debug.php pour analyser les requetes catalogue, les permissions et la configuration.
+
+# Erreurs
+UnsupportedDocumentType = Ce type de document n'est pas gere par Doli Catalog.
+DocumentNotFound = Le document n'a pas pu etre charge.
+DocumentNotDraft = Les lignes ne peuvent etre ajoutees qu'a un document au statut brouillon.
+NothingSelected = Aucun article selectionne.
+ProductNotForSale = Cet article n'est pas en vente.
+ProductNotForPurchase = Cet article n'est pas en achat.
+AddLineFailed = La ligne n'a pas pu etre ajoutee.
+DoliCatalogThisSupplierOnly = Ce fournisseur uniquement
+DoliCatalogThisSupplierOnlyTooltip = N'affiche que les articles ayant un prix d'achat enregistre pour ce fournisseur. Decochez pour parcourir tous les articles achetables.
+
+# Infobulles
+DoliCatalogBrowseCatalogTooltipBuy = Choisir des articles a acheter depuis l'arborescence des categories
+DoliCatalogBrowseCatalogTooltipBom = Choisir des composants depuis l'arborescence des categories
+DoliCatalogSearchTooltip = Recherche sur la reference, le libelle, la description et le code-barres. Dans une categorie, la recherche reste limitee a cette branche et ses sous-categories.
+DoliCatalogTypeFilterTooltip = Limiter la liste aux produits ou aux services
+DoliCatalogWarehouseTooltip = Choisir un entrepot pour afficher son stock au lieu du total tous entrepots
+DoliCatalogAddSelectedTooltip = Ajouter tous les articles selectionnes a ce document
+DoliCatalogCancelTooltip = Fermer sans rien ajouter
+DoliCatalogOpenCategory = Ouvrir {0}
+DoliCatalogSelectItem = Selectionner {0}
+DoliCatalogRemoveItem = Retirer {0} de la selection
+DoliCatalogQtyTooltip = Quantite a ajouter. Saisir ici selectionne l'article.
+DoliCatalogStockWarehouse = Stock dans l'entrepot selectionne
+DoliCatalogStockAll = Stock tous entrepots confondus
+DoliCatalogServiceNoStock = Les services ne sont pas stockes
+DoliCatalogClearSelectionTooltip = Vider la selection
+DoliCatalogFavoritesTooltip = N'afficher que les articles marques comme favoris
+DoliCatalogRecentTooltip = Afficher les articles choisis recemment

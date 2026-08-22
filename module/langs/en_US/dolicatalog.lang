@@ -1,0 +1,102 @@
+# Copyright (C) 2026 Zachary Melo
+# Doli Catalog - English
+
+# Module
+Module500410Name = Doli Catalog
+Module500410Desc = Visual, tree-based product and service picker for quotes, orders, invoices and bills of materials
+
+# Permissions
+Permission500410 = Use the Doli Catalog catalog browser
+
+# Trigger button
+DoliCatalogBrowseCatalog = Browse catalog
+DoliCatalogBrowseCatalogTooltip = Pick products and services from the category tree
+
+# Modal chrome
+DoliCatalogTitle = Product and service catalog
+DoliCatalogSearchPlaceholder = Search by reference, label, description or barcode...
+DoliCatalogRoot = Catalog
+DoliCatalogCategories = Categories
+DoliCatalogItems = items
+DoliCatalogFavorites = Favorites
+DoliCatalogRecent = Recently used
+DoliCatalogAllTypes = All types
+DoliCatalogAllWarehouses = All warehouses
+DoliCatalogLoading = Loading...
+DoliCatalogNoResults = No matching items.
+DoliCatalogEmptyCategory = This category has no items.
+DoliCatalogTruncated = More results exist than can be shown. Refine your search or open a subcategory.
+DoliCatalogError = The catalog could not be loaded.
+DoliCatalogAddSelected = Add selected
+DoliCatalogAdding = Adding...
+DoliCatalogSelected = selected
+DoliCatalogNothingSelected = Nothing selected
+DoliCatalogClearSelection = Clear
+DoliCatalogAdded = Lines added
+DoliCatalogAddFavorite = Add to favorites
+DoliCatalogRemoveFavorite = Remove from favorites
+DoliCatalogSearchAll = Search the whole catalog
+
+# Setup page
+DoliCatalogSetup = Doli Catalog setup
+DoliCatalogSetupIntro = Doli Catalog adds a "Browse catalog" button to the line entry form of customer proposals, sales orders, customer invoices, supplier proposals, purchase orders and supplier invoices. It reads native Dolibarr product categories and products; nothing in the core is modified.
+DoliCatalogSettings = Settings
+DoliCatalogDisplay = Display
+DoliCatalogBehaviour = Behaviour
+
+ShowStock = Show stock
+ShowStockDesc = Display a stock column, and a warehouse filter when the Stock module is enabled.
+ShowTtc = Show price including tax
+ShowTtcDesc = Add a second price column showing the tax-inclusive price.
+ShowImages = Show thumbnails
+ShowImagesDesc = Display the first product photo in each row. Turn off on very large catalogs to reduce disk reads.
+ShowDuration = Show service duration
+ShowDurationDesc = Display the duration column for items of type Service.
+EnableFavorites = Enable favorites
+EnableFavoritesDesc = Let each user star items and reach them from a Favorites tab.
+EnableRecent = Enable recently used
+EnableRecentDesc = Keep a per-user history of recently picked items.
+HideEmptyCategories = Hide empty categories
+HideEmptyCategoriesDesc = Do not show category folders that contain no matching items.
+MaxResults = Maximum rows
+MaxResultsDesc = Rows returned per query before the list is truncated. Between 1 and 500.
+RecentCount = Recent items kept
+RecentCountDesc = How many recently used items to remember per user.
+DefaultQty = Default quantity
+DefaultQtyDesc = Quantity pre-filled when an item is selected.
+ButtonIcon = Trigger button icon
+ButtonIconDesc = Font Awesome class used on the "Browse catalog" button, for example fa-th-large or fa-list.
+RootCategories = Root categories
+RootCategoriesDesc = Comma separated product category ids to show at the top level. Leave empty to show every top level category.
+DebugMode = Debug mode
+DebugModeDesc = When enabled, exposes a diagnostic endpoint at /custom/dolicatalog/ajax/debug.php for troubleshooting catalog queries, permissions and module configuration.
+
+# Errors surfaced from the AJAX endpoints
+UnsupportedDocumentType = This document type is not supported by Doli Catalog.
+DocumentNotFound = The document could not be loaded.
+DocumentNotDraft = Lines can only be added to a draft document.
+NothingSelected = No item was selected.
+ProductNotForSale = This item is not flagged for sale.
+ProductNotForPurchase = This item is not flagged for purchase.
+AddLineFailed = The line could not be added.
+DoliCatalogThisSupplierOnly = This supplier only
+DoliCatalogThisSupplierOnlyTooltip = Show only items that have a purchase price recorded for this supplier. Uncheck to browse every purchasable item.
+
+# Tooltips
+DoliCatalogBrowseCatalogTooltipBuy = Pick items to purchase from the category tree
+DoliCatalogBrowseCatalogTooltipBom = Pick components from the category tree
+DoliCatalogSearchTooltip = Searches reference, label, description and barcode. Inside a category the search stays within that branch and its subcategories.
+DoliCatalogTypeFilterTooltip = Limit the list to products only or services only
+DoliCatalogWarehouseTooltip = Pick a warehouse to show its stock instead of the total across all warehouses
+DoliCatalogAddSelectedTooltip = Add every selected item to this document as a new line
+DoliCatalogCancelTooltip = Close without adding anything
+DoliCatalogOpenCategory = Open {0}
+DoliCatalogSelectItem = Select {0}
+DoliCatalogRemoveItem = Remove {0} from the selection
+DoliCatalogQtyTooltip = Quantity to add. Typing here selects the item.
+DoliCatalogStockWarehouse = Stock in the selected warehouse
+DoliCatalogStockAll = Stock across all warehouses
+DoliCatalogServiceNoStock = Services are not stocked
+DoliCatalogClearSelectionTooltip = Remove every item from the selection
+DoliCatalogFavoritesTooltip = Show only the items you starred
+DoliCatalogRecentTooltip = Show the items you picked most recently

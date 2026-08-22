@@ -1,0 +1,14 @@
+# Build output
+*.zip
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Local overrides
+docker-compose.override.yml
