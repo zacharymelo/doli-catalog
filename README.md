@@ -37,6 +37,17 @@ It reads native tables only. No core file is modified.
 
 ---
 
+## The catalogue page
+
+**Products | Services → Catalog** is a standalone browser for the range: click
+through category folders, or search across product text and category names.
+Results show each item's full category path, and references link to the product
+card. Use it to explore the catalogue without starting a document — useful when
+onboarding staff who know the categories but not the product codes.
+
+Searching from this page always searches the whole catalogue, even while inside
+a folder.
+
 ## Where it appears
 
 | Document | Hook context | Catalog mode |

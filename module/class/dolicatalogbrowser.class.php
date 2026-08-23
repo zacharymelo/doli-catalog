@@ -338,6 +338,20 @@ class DoliCatalogBrowser
 		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
 		$sql .= " AND c.entity IN (".getEntity('category').")";
 		$sql .= " AND c.label LIKE '%".$needle."%'";
+
+		// When the caller is searching inside a branch, the folders offered must
+		// come from that same branch. Otherwise a scoped search can advertise a
+		// category with items while listing no products, because the products
+		// were filtered to the branch and the folders were not.
+		$scope = isset($filters['category']) ? (int) $filters['category'] : 0;
+		if ($scope > 0) {
+			$inScope = $this->getDescendantIds($scope);
+			if (empty($inScope)) {
+				return array();
+			}
+			$sql .= " AND c.rowid IN (".$this->db->sanitize(implode(',', $inScope)).")";
+		}
+
 		$sql .= " ORDER BY c.label ASC";
 		$sql .= $this->db->plimit(20, 0);
 
@@ -562,7 +576,10 @@ class DoliCatalogBrowser
 
 		$sql .= " ORDER BY p.ref ASC";
 		// Fetch one extra row so we can tell the caller the list was cut short.
-		$sql .= $this->db->plimit($limit + 1, 0);
+		// One row beyond the page tells the caller more exists, without the cost
+		// of a separate COUNT over the same filters.
+		$offset = isset($filters['offset']) ? max(0, (int) $filters['offset']) : 0;
+		$sql .= $this->db->plimit($limit + 1, $offset);
 
 		$resql = $this->db->query($sql);
 		if (!$resql) {
@@ -620,7 +637,7 @@ class DoliCatalogBrowser
 		// Decorate with per-user flags and thumbnails only for the rows we kept.
 		$this->decorateRows($rows, $userid);
 
-		return array('rows' => $rows, 'truncated' => $truncated, 'total' => count($rows));
+		return array('rows' => $rows, 'truncated' => $truncated, 'total' => count($rows), 'offset' => $offset);
 	}
 
 	/**

@@ -14,6 +14,47 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.3.0] - 2026-08-23
+
+### Added
+
+- **A standalone catalogue page.** The picker only exists inside a document
+  being edited, so there was nowhere to simply look at the range. **Products |
+  Services → Catalog** opens a full-page browser: click through category
+  folders, or search across product text and category names.
+
+  It shares `ajax/catalog.php` with the picker, so navigation, search and
+  favourites behave identically in both. The presentation differs on purpose —
+  the picker is a dense table for selecting quickly, this is a card grid with
+  thumbnails, prices and stock for looking around. References link to the
+  product card.
+
+  Paging replaces the picker's "more results exist" notice, using one row beyond
+  the page to detect a next page rather than a second COUNT over the same
+  filters.
+
+### Fixed
+
+- **A scoped search could advertise folders it then showed nothing for.** When
+  searching inside a category, products were filtered to that branch but the
+  matching category folders were not, so a search could offer "Docking stations,
+  2 items" above an empty product list. Matched categories now respect the same
+  scope.
+
+- **Asset cache-busting on the browse page** keyed the query string to
+  `MAIN_MODULE_DOLICATALOG_VERSION`, a constant Dolibarr never writes, so the URL
+  was pinned to the fallback value permanently and browsers kept serving stale
+  JavaScript after a deploy. Both script tags now use the asset's modification
+  time, which changes exactly when the file does.
+
+### Changed
+
+- On the catalogue page, typing in the search box leaves the current folder and
+  searches everything. The page exists for people who do not know where a thing
+  lives; a search that silently excluded everything outside the folder they
+  happened to be standing in would defeat the purpose. The in-document picker
+  keeps its scoped search, where narrowing is usually deliberate.
+
 ## [1.2.0] - 2026-08-23
 
 ### Added
@@ -126,6 +167,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.3.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.1.0
 [1.0.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.1

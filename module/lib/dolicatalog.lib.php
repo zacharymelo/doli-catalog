@@ -119,3 +119,29 @@ function dolicatalogGetVersion()
 
 	return $version;
 }
+
+/**
+ * Cache-busting token for a module asset, derived from the file itself.
+ *
+ * Keying an asset URL to the module version only busts caches when the version
+ * is bumped, and keying it to MAIN_MODULE_DOLICATALOG_VERSION does not work at
+ * all - Dolibarr never writes that constant, so the URL pinned to the fallback
+ * forever. A file's modification time changes exactly when the file does, which
+ * is the property actually wanted.
+ *
+ * @param  string $relPath Module-relative asset path, e.g. '/dolicatalog/js/x.js'
+ * @return string          Version token for a query string
+ */
+function dolicatalogAssetVersion($relPath)
+{
+	$full = dol_buildpath($relPath, 0);
+	$mtime = (is_string($full) && $full !== '' && file_exists($full)) ? filemtime($full) : false;
+
+	if ($mtime === false) {
+		// Never fail an asset over a missing timestamp; fall back to the
+		// declared module version, which at least changes each release.
+		return dolicatalogGetVersion();
+	}
+
+	return (string) $mtime;
+}

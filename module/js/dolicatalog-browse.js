@@ -1,0 +1,425 @@
+/* Copyright (C) 2026 Zachary Melo <zach@digitalproperties.works>
+ *
+ * Standalone catalogue browser.
+ *
+ * Shares ajax/catalog.php with the in-document picker, so navigation, search
+ * and favourites behave identically in both. The presentation differs on
+ * purpose: the picker is a dense table optimised for selecting quickly, this is
+ * a card grid optimised for looking around.
+ */
+(function () {
+	'use strict';
+
+	var cfgEl = document.getElementById('dolicatalog-browse-config');
+	if (!cfgEl) { return; }
+
+	var CFG;
+	try {
+		CFG = JSON.parse(cfgEl.textContent || cfgEl.innerText);
+	} catch (e) {
+		return;
+	}
+
+	var L = CFG.labels || {};
+
+	var state = {
+		view: 'browse',   // browse | search | favorites | recent
+		category: 0,
+		search: '',
+		type: -1,
+		warehouse: 0,
+		offset: 0,
+		breadcrumb: [],
+		seq: 0
+	};
+
+	function el(id) { return document.getElementById(id); }
+
+	function label(key, fallback) {
+		return (L[key] && L[key] !== key) ? L[key] : (fallback || key);
+	}
+
+	function make(tag, cls, text) {
+		var n = document.createElement(tag);
+		if (cls) { n.className = cls; }
+		if (text !== undefined && text !== null) { n.textContent = String(text); }
+		return n;
+	}
+
+	function clear(node) {
+		while (node && node.firstChild) { node.removeChild(node.firstChild); }
+	}
+
+	function debounce(fn, wait) {
+		var t = null;
+		return function () {
+			var a = arguments, s = this;
+			clearTimeout(t);
+			t = setTimeout(function () { fn.apply(s, a); }, wait);
+		};
+	}
+
+	function money(v) {
+		var n = parseFloat(v);
+		if (isNaN(n)) { return ''; }
+		try {
+			return new Intl.NumberFormat(undefined, { style: 'currency', currency: CFG.currency || 'EUR' }).format(n);
+		} catch (e) {
+			return n.toFixed(2);
+		}
+	}
+
+	// ------------------------------------------------------------------ data
+
+	function fetchCatalog() {
+		var q = new URLSearchParams();
+		q.set('mode', CFG.mode);
+		q.set('type', state.type);
+		q.set('warehouse', state.warehouse);
+		q.set('offset', state.offset);
+
+		if (state.view === 'search') {
+			q.set('action', 'search');
+			q.set('q', state.search);
+			if (state.category) { q.set('category', state.category); }
+		} else if (state.view === 'favorites' || state.view === 'recent') {
+			q.set('action', state.view);
+		} else {
+			q.set('action', 'browse');
+			if (state.category) { q.set('category', state.category); }
+		}
+
+		var seq = ++state.seq;
+
+		return fetch(CFG.urlCatalog + '?' + q.toString(), {
+			credentials: 'same-origin',
+			headers: { 'X-Requested-With': 'XMLHttpRequest' }
+		}).then(function (r) { return r.json(); }).then(function (d) {
+			// Drop a response a newer request has already superseded.
+			return (seq === state.seq) ? d : null;
+		});
+	}
+
+	// ------------------------------------------------------------- rendering
+
+	function renderBreadcrumb() {
+		var host = el('dcb-breadcrumb');
+		clear(host);
+
+		var nav = make('div', 'dolicatalog-crumbs');
+
+		function crumb(text, onClick, current) {
+			var n = make(current ? 'span' : 'a', 'dolicatalog-crumb' + (current ? ' current' : ''), text);
+			if (!current) {
+				n.href = '#';
+				n.addEventListener('click', function (ev) { ev.preventDefault(); onClick(); });
+			}
+			return n;
+		}
+
+		nav.appendChild(crumb(label('DoliCatalogRoot', 'Catalog'), function () {
+			state.view = 'browse';
+			state.category = 0;
+			state.offset = 0;
+			el('dcb-search').value = '';
+			state.search = '';
+			load();
+		}, state.view === 'browse' && !state.category));
+
+		if (state.view === 'favorites' || state.view === 'recent') {
+			nav.appendChild(make('span', 'dolicatalog-crumb-sep', '›'));
+			nav.appendChild(crumb(
+				state.view === 'favorites' ? label('DoliCatalogFavorites', 'Favorites') : label('DoliCatalogRecent', 'Recently used'),
+				null, true
+			));
+		} else {
+			state.breadcrumb.forEach(function (item, i) {
+				nav.appendChild(make('span', 'dolicatalog-crumb-sep', '›'));
+				nav.appendChild(crumb(item.label, function () {
+					state.view = 'browse';
+					state.category = item.id;
+					state.offset = 0;
+					load();
+				}, i === state.breadcrumb.length - 1));
+			});
+		}
+		host.appendChild(nav);
+
+		var tabs = make('div', 'dolicatalog-tabs');
+		if (CFG.enableFavorites) { tabs.appendChild(tab(label('DoliCatalogFavorites', 'Favorites'), 'fa-star', 'favorites')); }
+		if (CFG.enableRecent) { tabs.appendChild(tab(label('DoliCatalogRecent', 'Recently used'), 'fa-history', 'recent')); }
+		host.appendChild(tabs);
+	}
+
+	function tab(text, icon, view) {
+		var b = make('button', 'dolicatalog-tab' + (state.view === view ? ' active' : ''));
+		b.type = 'button';
+		b.appendChild(make('span', 'fa ' + icon));
+		b.appendChild(document.createTextNode(' ' + text));
+		b.addEventListener('click', function () {
+			state.view = (state.view === view) ? 'browse' : view;
+			if (state.view === 'browse') { state.category = 0; }
+			state.offset = 0;
+			el('dcb-search').value = '';
+			state.search = '';
+			load();
+		});
+		return b;
+	}
+
+	function renderFolders(cats) {
+		var section = make('div', 'dolicatalog-section');
+		section.appendChild(make('div', 'dolicatalog-section-title',
+			state.view === 'search'
+				? label('DoliCatalogMatchingCategories', 'Matching categories')
+				: label('DoliCatalogCategories', 'Categories')));
+
+		var grid = make('div', 'dolicatalog-folders');
+		cats.forEach(function (c) {
+			var card = make('button', 'dolicatalog-folder');
+			card.type = 'button';
+			if (c.color) { card.style.borderLeftColor = '#' + String(c.color).replace('#', ''); }
+			card.appendChild(make('span', 'fa fa-folder dolicatalog-folder-icon'));
+
+			var body = make('span', 'dolicatalog-folder-body');
+			body.appendChild(make('span', 'dolicatalog-folder-label', c.label));
+			body.appendChild(make('span', 'dolicatalog-folder-count', c.count + ' ' + label('DoliCatalogItems', 'items')));
+			card.appendChild(body);
+
+			card.addEventListener('click', function () {
+				state.view = 'browse';
+				state.category = c.id;
+				state.offset = 0;
+				el('dcb-search').value = '';
+				state.search = '';
+				load();
+			});
+			grid.appendChild(card);
+		});
+		section.appendChild(grid);
+
+		return section;
+	}
+
+	function renderProducts(products) {
+		var section = make('div', 'dolicatalog-section');
+		section.appendChild(make('div', 'dolicatalog-section-title', label('DoliCatalogItems', 'Items')));
+
+		var grid = make('div', 'dcb-grid');
+		products.forEach(function (p) { grid.appendChild(productCard(p)); });
+		section.appendChild(grid);
+
+		return section;
+	}
+
+	function productCard(p) {
+		var card = make('div', 'dcb-card');
+
+		if (CFG.showImages) {
+			var media = make('div', 'dcb-media');
+			if (p.image) {
+				var img = document.createElement('img');
+				img.src = p.image;
+				img.alt = '';
+				img.loading = 'lazy';
+				media.appendChild(img);
+			} else {
+				media.appendChild(make('span', 'fa ' + (p.type === 1 ? 'fa-cogs' : 'fa-cube') + ' dcb-placeholder'));
+			}
+			card.appendChild(media);
+		}
+
+		var body = make('div', 'dcb-body');
+
+		var refLine = make('div', 'dcb-refline');
+		// The whole reference is the link: on a page built for looking around,
+		// the product card is the natural next click.
+		var refLink = document.createElement('a');
+		refLink.className = 'dcb-ref';
+		refLink.href = CFG.urlProduct + '?id=' + encodeURIComponent(p.id);
+		refLink.title = label('DoliCatalogOpenProduct', 'Open product card');
+		refLink.textContent = p.ref;
+		refLine.appendChild(refLink);
+
+		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }
+		body.appendChild(refLine);
+
+		body.appendChild(make('div', 'dcb-title', p.label));
+
+		if (state.view !== 'browse' && p.paths && p.paths.length) {
+			var path = make('div', 'dcb-path');
+			path.appendChild(make('span', 'fa fa-folder-open dolicatalog-pathicon'));
+			path.appendChild(document.createTextNode(' ' + p.paths[0]));
+			path.title = p.paths.join('\n');
+			body.appendChild(path);
+		} else if (p.description) {
+			body.appendChild(make('div', 'dcb-desc', p.description));
+		}
+
+		var meta = make('div', 'dcb-meta');
+		meta.appendChild(make('span', 'dcb-price', money(p.price)));
+		if (CFG.showTtc) { meta.appendChild(make('span', 'dcb-price-ttc', money(p.price_ttc))); }
+
+		if (CFG.showStock && p.type !== 1) {
+			var v = parseFloat(p.stock) || 0;
+			meta.appendChild(make('span', 'dolicatalog-stock ' + (v > 0 ? 'ok' : 'out'), v));
+		}
+		if (CFG.showDuration && p.type === 1 && p.duration) {
+			meta.appendChild(make('span', 'dcb-duration', p.duration));
+		}
+		body.appendChild(meta);
+
+		card.appendChild(body);
+
+		if (CFG.enableFavorites) {
+			var star = make('button', 'dcb-fav' + (p.is_favorite ? ' on' : ''));
+			star.type = 'button';
+			star.title = p.is_favorite
+				? label('DoliCatalogRemoveFavorite', 'Remove from favorites')
+				: label('DoliCatalogAddFavorite', 'Add to favorites');
+			star.appendChild(make('span', 'fa fa-star'));
+			star.addEventListener('click', function (ev) {
+				ev.preventDefault();
+				ev.stopPropagation();
+				toggleFavorite(p, star);
+			});
+			card.appendChild(star);
+		}
+
+		return card;
+	}
+
+	function renderPager(data) {
+		var host = el('dcb-pager');
+		clear(host);
+
+		var size = CFG.pageSize;
+		var hasPrev = state.offset > 0;
+		var hasNext = !!data.truncated;
+		if (!hasPrev && !hasNext) { return; }
+
+		var prev = make('button', 'button button-cancel', '‹ ' + label('DoliCatalogPrevious', 'Previous'));
+		prev.type = 'button';
+		prev.disabled = !hasPrev;
+		prev.addEventListener('click', function () {
+			state.offset = Math.max(0, state.offset - size);
+			load();
+		});
+
+		var next = make('button', 'button', label('DoliCatalogNext', 'Next') + ' ›');
+		next.type = 'button';
+		next.disabled = !hasNext;
+		next.addEventListener('click', function () {
+			state.offset += size;
+			load();
+		});
+
+		var from = state.offset + 1;
+		var to = state.offset + (data.products ? data.products.length : 0);
+		host.appendChild(make('span', 'dcb-pageinfo', from + '–' + to));
+		host.appendChild(prev);
+		host.appendChild(next);
+	}
+
+	function toggleFavorite(p, button) {
+		var body = new URLSearchParams();
+		body.set('token', CFG.token);
+		body.set('productid', p.id);
+
+		fetch(CFG.urlFavorite, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded',
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+			body: body.toString()
+		}).then(function (r) { return r.json(); }).then(function (d) {
+			if (!d.ok) { return; }
+			p.is_favorite = d.favorite;
+			button.classList.toggle('on', !!d.favorite);
+			if (state.view === 'favorites' && !d.favorite) { load(); }
+		}).catch(function () { /* favouriting is not critical */ });
+	}
+
+	// ------------------------------------------------------------------ load
+
+	function load() {
+		var host = el('dcb-results');
+		clear(host);
+		host.appendChild(make('div', 'dolicatalog-empty', label('DoliCatalogLoading', 'Loading…')));
+
+		fetchCatalog().then(function (data) {
+			if (!data) { return; }
+
+			clear(host);
+			if (!data.ok) {
+				host.appendChild(make('div', 'dolicatalog-empty error', label('DoliCatalogError', 'Could not load the catalog.')));
+				return;
+			}
+
+			state.breadcrumb = data.breadcrumb || [];
+			renderBreadcrumb();
+
+			var cats = data.categories || [];
+			var prods = data.products || [];
+
+			if (!cats.length && !prods.length) {
+				var msg = state.view === 'search'
+					? label('DoliCatalogNoResults', 'No matching items.')
+					: (state.category
+						? label('DoliCatalogEmptyCategory', 'This category is empty.')
+						: label('DoliCatalogBrowseEmpty', 'No product categories exist yet.'));
+				host.appendChild(make('div', 'dolicatalog-empty', msg));
+				clear(el('dcb-pager'));
+				return;
+			}
+
+			if (cats.length) { host.appendChild(renderFolders(cats)); }
+			if (prods.length) { host.appendChild(renderProducts(prods)); }
+
+			renderPager(data);
+		}).catch(function () {
+			clear(host);
+			host.appendChild(make('div', 'dolicatalog-empty error', label('DoliCatalogError', 'Could not load the catalog.')));
+		});
+	}
+
+	function init() {
+		el('dcb-search').addEventListener('input', debounce(function () {
+			var t = el('dcb-search').value.trim();
+			state.search = t;
+			state.view = t ? 'search' : 'browse';
+			// Searching leaves the current folder. This page is for people who
+			// do not know where something lives, so a search that silently
+			// excluded everything outside the folder they happened to be in
+			// would be the opposite of useful.
+			state.category = 0;
+			state.offset = 0;
+			load();
+		}, 250));
+
+		el('dcb-type').addEventListener('change', function () {
+			state.type = parseInt(el('dcb-type').value, 10);
+			state.offset = 0;
+			load();
+		});
+
+		var wh = document.querySelector('[name="dcb_warehouse"]');
+		if (wh) {
+			wh.addEventListener('change', function () {
+				state.warehouse = parseInt(wh.value, 10) || 0;
+				state.offset = 0;
+				load();
+			});
+		}
+
+		load();
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+})();

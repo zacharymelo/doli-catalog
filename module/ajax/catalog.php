@@ -82,8 +82,11 @@ $supplier = GETPOSTINT('supplier');
 
 $catalog = new DoliCatalogBrowser($db);
 
+$offset = GETPOSTINT('offset');
+
 $filters = array(
 	'mode' => $mode,
+	'offset' => $offset,
 	'type' => $type,
 	'warehouse' => $warehouse,
 	'supplier' => $supplier,
@@ -118,6 +121,7 @@ switch ($action) {
 			'categories' => $decorated,
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
+			'offset' => $offset,
 		));
 		break;
 
@@ -137,7 +141,7 @@ switch ($action) {
 
 		// A term matching a category name is offered as a folder too, so the
 		// search doubles as a shortcut into that branch.
-		$matchedCategories = $catalog->searchCategories($search, $filters);
+		$matchedCategories = $catalog->searchCategories($search, $searchFilters);
 		foreach ($matchedCategories as $k => $mc) {
 			$matchedCategories[$k]['count'] = $catalog->countProductsInCategory($mc['id'], $filters);
 		}
@@ -148,6 +152,7 @@ switch ($action) {
 			'categories' => $matchedCategories,
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
+			'offset' => $offset,
 			'scoped' => $category > 0 ? 1 : 0,
 		));
 		break;
@@ -164,6 +169,7 @@ switch ($action) {
 			'categories' => array(),
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
+			'offset' => $offset,
 		));
 		break;
 
