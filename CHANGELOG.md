@@ -14,6 +14,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.2.0] - 2026-08-23
+
+### Added
+
+- **Link to the product card from a picker row.** An external-link icon sits to
+  the right of each reference and opens that product's card. It opens in a new
+  tab deliberately: the picker sits inside a half-written quote or order, and
+  navigating away in the current tab would discard whatever the user had already
+  entered.
+
+  Clicking the icon does not touch the row's selection, so checking an item and
+  then inspecting it are independent actions.
+
 ## [1.1.0] - 2026-08-23
 
 ### Added
@@ -113,6 +126,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.2.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.1.0
 [1.0.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.1
 [1.0.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.0

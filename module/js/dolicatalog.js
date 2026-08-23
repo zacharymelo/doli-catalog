@@ -349,10 +349,30 @@
 			row.appendChild(tdImg);
 		}
 
-		var tdRef = makeEl('td', 'ppc-ref', p.ref);
-		tdRef.title = p.barcode
+		var tdRef = makeEl('td', 'ppc-ref');
+		var refText = makeEl('span', 'dolicatalog-reftext', p.ref);
+		refText.title = p.barcode
 			? p.ref + ' — ' + label('BarCode', 'Barcode') + ': ' + p.barcode
 			: p.ref;
+		tdRef.appendChild(refText);
+
+		// Opens the product card in a new tab. It must never be the current tab:
+		// the picker sits inside a half-written document, and navigating away
+		// would discard whatever the user has already entered.
+		if (CFG.urlProduct) {
+			var open = document.createElement('a');
+			open.className = 'dolicatalog-openproduct';
+			open.href = CFG.urlProduct + '?id=' + encodeURIComponent(p.id);
+			open.target = '_blank';
+			open.rel = 'noopener noreferrer';
+			open.title = label('DoliCatalogOpenProduct', 'Open product card in a new tab');
+			open.setAttribute('aria-label', open.title);
+			open.appendChild(makeEl('span', 'fa fa-external-link-alt'));
+			// Keep the click off the row so it cannot disturb the selection.
+			open.addEventListener('click', function (ev) { ev.stopPropagation(); });
+			tdRef.appendChild(open);
+		}
+
 		row.appendChild(tdRef);
 
 		var tdLabel = makeEl('td', 'ppc-label');

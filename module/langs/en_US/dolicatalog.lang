@@ -101,3 +101,4 @@ DoliCatalogClearSelectionTooltip = Remove every item from the selection
 DoliCatalogFavoritesTooltip = Show only the items you starred
 DoliCatalogRecentTooltip = Show the items you picked most recently
 DoliCatalogMatchingCategories = Matching categories
+DoliCatalogOpenProduct = Open product card in a new tab

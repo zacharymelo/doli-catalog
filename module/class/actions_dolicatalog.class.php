@@ -173,6 +173,8 @@ class ActionsDoliCatalog
 			'urlCatalog' => dol_buildpath('/dolicatalog/ajax/catalog.php', 1),
 			'urlAddLines' => dol_buildpath('/dolicatalog/ajax/addlines.php', 1),
 			'urlFavorite' => dol_buildpath('/dolicatalog/ajax/favorite.php', 1),
+			// Product card, opened in a new tab from the picker.
+			'urlProduct' => dol_buildpath('/product/card.php', 1),
 			'showStock' => getDolGlobalInt('DOLICATALOG_SHOW_STOCK', 1),
 			'showTtc' => in_array($mode, array('buy', 'bom'), true) ? 0 : getDolGlobalInt('DOLICATALOG_SHOW_TTC', 0),
 			'showImages' => getDolGlobalInt('DOLICATALOG_SHOW_IMAGES', 1),
@@ -301,7 +303,8 @@ class ActionsDoliCatalog
 			'DoliCatalogTruncated', 'DoliCatalogCategories', 'DoliCatalogItems', 'DoliCatalogError',
 			'DoliCatalogAddFavorite', 'DoliCatalogRemoveFavorite', 'DoliCatalogAdded',
 			'DoliCatalogNothingSelected', 'DoliCatalogSearchAll', 'DoliCatalogClearSelection',
-			'DoliCatalogEmptyCategory', 'DoliCatalogAdding', 'DoliCatalogMatchingCategories', 'DoliCatalogThisSupplierOnly',
+			'DoliCatalogEmptyCategory', 'DoliCatalogAdding', 'DoliCatalogMatchingCategories',
+			'DoliCatalogOpenProduct', 'DoliCatalogThisSupplierOnly',
 			'DoliCatalogOpenCategory', 'DoliCatalogSelectItem', 'DoliCatalogQtyTooltip',
 			'DoliCatalogStockWarehouse', 'DoliCatalogStockAll', 'DoliCatalogServiceNoStock',
 			'DoliCatalogClearSelectionTooltip', 'DoliCatalogRemoveItem',

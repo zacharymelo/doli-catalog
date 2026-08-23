@@ -590,3 +590,31 @@ body.dolicatalog-open .ui-autocomplete {
 	font-size: 10px;
 	margin-left: 5px;
 }
+
+/* Link out to the product card from a picker row. Kept quiet until hover so it
+   does not compete with the reference itself, but always present so its column
+   width never shifts between rows. */
+
+.dolicatalog-reftext { vertical-align: middle; }
+
+.dolicatalog-openproduct {
+	display: inline-block;
+	margin-left: 6px;
+	color: #cbd5e1;
+	font-size: 11px;
+	text-decoration: none;
+	vertical-align: middle;
+	transition: color 0.12s ease;
+}
+
+.dolicatalog-openproduct:hover,
+.dolicatalog-openproduct:focus {
+	color: #2563eb;
+	text-decoration: none;
+}
+
+.dolicatalog-row:hover .dolicatalog-openproduct { color: #94a3b8; }
+.dolicatalog-row:hover .dolicatalog-openproduct:hover { color: #2563eb; }
+
+/* Keep the reference column wide enough that adding the icon does not wrap. */
+.dolicatalog-table .ppc-ref { white-space: nowrap; }
