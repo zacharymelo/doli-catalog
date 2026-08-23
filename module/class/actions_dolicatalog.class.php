@@ -242,6 +242,7 @@ class ActionsDoliCatalog
 		$out .= '</div>';
 		$out .= '</div>';
 
+		$out .= dolicatalogStylesheetTag();
 		$out .= '<script type="application/json" id="dolicatalog-config">'.json_encode($config).'</script>';
 		$out .= '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog.js')).'"></script>';
 		if ($wrap === 'tablerow') {

@@ -57,6 +57,8 @@ if (!$user->hasRight('produit', 'lire') && !$user->hasRight('service', 'lire')) 
 
 llxHeader('', $langs->trans('DoliCatalogBrowseTitle'), '', '', 0, 0, '', '', '', 'mod-dolicatalog page-browse');
 
+print dolicatalogStylesheetTag();
+
 print load_fiche_titre($langs->trans('DoliCatalogBrowseTitle'), '', 'product');
 
 print '<span class="opacitymedium">'.$langs->trans('DoliCatalogBrowseIntro').'</span><br><br>';

@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.3.0';
+		$this->version = '1.3.1';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';
@@ -51,7 +51,11 @@ class modDoliCatalog extends DolibarrModules
 		// Module parts.
 		$this->module_parts = array(
 			'triggers' => 0,
-			'css' => array('/dolicatalog/css/dolicatalog.css'),
+			// The stylesheet is NOT registered here. module_parts emits a plain
+			// <link> with no query string, so browsers cache it indefinitely and
+			// every deploy needed a manual hard reload before new styles applied.
+			// It is emitted instead by dolicatalogStylesheetTag(), keyed to the
+			// file's modification time.
 			'hooks' => array(
 				'data' => array(
 					'propalcard',
@@ -144,6 +148,15 @@ class modDoliCatalog extends DolibarrModules
 		if ($result < 0) {
 			return -1;
 		}
+
+		// Upgrade cleanup. Releases up to 1.3.0 registered the stylesheet through
+		// module_parts. delete_module_parts() only removes constants for keys
+		// still present in the descriptor, so dropping 'css' from it orphaned
+		// this constant and Dolibarr kept emitting a second, unversioned <link>
+		// that browsers cache indefinitely. Remove it explicitly.
+		$sql = "DELETE FROM ".MAIN_DB_PREFIX."const";
+		$sql .= " WHERE ".$this->db->decrypt('name')." = '".$this->db->escape($this->const_name.'_CSS')."'";
+		$this->db->query($sql);
 
 		$this->delete_menus();
 

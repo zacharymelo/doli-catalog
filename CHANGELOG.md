@@ -14,6 +14,30 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.3.1] - 2026-08-23
+
+### Fixed
+
+- **Product descriptions showed raw markup.** Descriptions authored in
+  Dolibarr's rich text editor appeared literally as
+  `<strong>Pressure:</strong> 20psi<br />` in both the picker and the catalogue
+  page, because both render text safely rather than as HTML. Descriptions are
+  now reduced to plain text before display, with block boundaries becoming
+  spaces so consecutive paragraphs do not run together. Stripping happens before
+  truncation, since truncating raw HTML can cut mid-tag.
+
+- **Stylesheet changes did not reach anyone until they hard-reloaded.** The
+  stylesheet was registered through `module_parts`, which emits a plain `<link>`
+  with no query string, so browsers cached it indefinitely and a deployed CSS
+  change appeared to have done nothing. It is now emitted with a token derived
+  from the file's modification time, so deploying is sufficient on its own.
+
+- **Orphaned stylesheet registration on upgrade.** `delete_module_parts()` only
+  removes constants for keys still present in the descriptor, so removing `css`
+  from `module_parts` left `MAIN_MODULE_DOLICATALOG_CSS` behind permanently and
+  Dolibarr kept emitting a second, unversioned link. `init()` now deletes that
+  constant explicitly when the module is enabled.
+
 ## [1.3.0] - 2026-08-23
 
 ### Added
@@ -167,6 +191,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.3.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.2.0
 [1.1.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.1.0

@@ -618,7 +618,8 @@ class DoliCatalogBrowser
 				'id' => (int) $obj->rowid,
 				'ref' => (string) $obj->ref,
 				'label' => (string) $obj->label,
-				'description' => dol_trunc((string) $obj->description, 160),
+				// Strip first, then truncate: truncating raw HTML can cut mid-tag.
+				'description' => dol_trunc($this->plainDescription($obj->description), 160),
 				'barcode' => (string) $obj->barcode,
 				'type' => (int) $obj->fk_product_type,
 				'price' => $unit,
@@ -638,6 +639,34 @@ class DoliCatalogBrowser
 		$this->decorateRows($rows, $userid);
 
 		return array('rows' => $rows, 'truncated' => $truncated, 'total' => count($rows), 'offset' => $offset);
+	}
+
+	/**
+	 * A product description reduced to readable plain text.
+	 *
+	 * Descriptions routinely contain markup entered through Dolibarr's rich text
+	 * editor. The picker and the catalogue page both render this with
+	 * textContent, so raw HTML would appear literally on screen as
+	 * "<strong>Pressure:</strong> 20psi<br />".
+	 *
+	 * Block-level boundaries become spaces before the tags are removed, otherwise
+	 * consecutive paragraphs run together into one word.
+	 *
+	 * @param  string $html Raw description
+	 * @return string       Plain text, whitespace collapsed
+	 */
+	private function plainDescription($html)
+	{
+		$html = (string) $html;
+		if ($html === '') {
+			return '';
+		}
+
+		$text = preg_replace('/<\s*(br|\/p|\/div|\/li|\/tr|\/h[1-6]|\/td)\s*\/?>/i', ' ', $html);
+		$text = dol_string_nohtmltag($text, 1);
+		$text = preg_replace('/\s+/', ' ', (string) $text);
+
+		return trim((string) $text);
 	}
 
 	/**

@@ -145,3 +145,21 @@ function dolicatalogAssetVersion($relPath)
 
 	return (string) $mtime;
 }
+
+/**
+ * The module stylesheet as a versioned <link> tag.
+ *
+ * Registering the stylesheet through module_parts produced an unversioned URL,
+ * so a deployed CSS change did not reach anyone until they hard-reloaded.
+ * Keying the query string to the file's modification time means a deploy is
+ * enough on its own.
+ *
+ * @return string A <link> element
+ */
+function dolicatalogStylesheetTag()
+{
+	$rel = '/dolicatalog/css/dolicatalog.css';
+
+	return '<link rel="stylesheet" type="text/css" href="'
+		.dol_buildpath($rel, 1).'?v='.urlencode(dolicatalogAssetVersion($rel)).'">';
+}
