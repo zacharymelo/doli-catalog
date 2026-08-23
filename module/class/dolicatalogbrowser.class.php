@@ -61,7 +61,7 @@ class DoliCatalogBrowser
 	 */
 	public static function normaliseMode($mode)
 	{
-		return in_array($mode, array('buy', 'bom'), true) ? $mode : 'sell';
+		return in_array($mode, array('buy', 'bom', 'all'), true) ? $mode : 'sell';
 	}
 
 	/**
@@ -949,8 +949,10 @@ class DoliCatalogBrowser
 		if ($mode === 'buy') {
 			return " AND p.tobuy = 1";
 		}
-		if ($mode === 'bom') {
-			return ""; // components need no sale or purchase flag
+		if ($mode === 'bom' || $mode === 'all') {
+			// Components need no sale or purchase flag, and 'all' is for callers
+			// such as the product list, which shows everything regardless.
+			return "";
 		}
 
 		return " AND p.tosell = 1";

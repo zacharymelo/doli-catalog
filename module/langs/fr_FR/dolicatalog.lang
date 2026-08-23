@@ -108,3 +108,7 @@ DoliCatalogBrowseIntro = Parcourez le catalogue par categorie, ou recherchez par
 DoliCatalogBrowseEmpty = Aucune categorie produit n'existe pour le moment.
 DoliCatalogPrevious = Precedent
 DoliCatalogNext = Suivant
+DoliCatalogNoSubcategories = Aucune sous-categorie
+DoliCatalogClearCategoryFilter = Effacer le filtre categorie
+ListTree = Filtre categorie sur la liste produits
+ListTreeDesc = Adds a category strip above the native product list. Clicking a category filters the list to that category and everything beneath it, which the built-in category filter cannot do on its own. Sorting, columns, mass actions and export are unaffected.

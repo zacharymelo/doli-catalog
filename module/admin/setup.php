@@ -149,6 +149,7 @@ dolicatalogPrintInputRow('DOLICATALOG_DEFAULT_QTY', 'DefaultQty', 'DefaultQtyDes
 dolicatalogPrintInputRow('DOLICATALOG_ROOT_CATEGORIES', 'RootCategories', 'RootCategoriesDesc', 'text', '', 'size="24" placeholder="e.g. 3,7,12"');
 
 // Debug toggle stays last.
+dolicatalogPrintToggleRow('DOLICATALOG_LIST_TREE', 'ListTree', 'ListTreeDesc');
 dolicatalogPrintToggleRow('DOLICATALOG_DEBUG_MODE', 'DebugMode', 'DebugModeDesc');
 
 print '</table>';

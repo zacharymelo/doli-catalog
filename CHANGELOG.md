@@ -14,6 +14,37 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.4.0] - 2026-08-23
+
+### Added
+
+- **Category filter strip on the native product list**, behind a new setting
+  (`Category filter on product list`, default **off**). It renders above the
+  list's filter row: a breadcrumb, the categories at the current level with
+  product counts, and a clear link.
+
+  **This fixes a limitation in Dolibarr itself.** The stock category filter
+  matches the chosen category exactly, so filtering by a parent shows only
+  products linked directly to it — on a tree of any depth that is usually
+  nothing at all. The strip submits the chosen category *and every category
+  beneath it* using the filter's OR operator, so filtering by a parent finally
+  includes its subtree.
+
+  It drives the native filter rather than injecting SQL, so sorting, column
+  choice, pagination, mass actions and export are untouched. The selection also
+  appears in the list's own Categories control, so what is applied stays visible
+  and editable there.
+
+  > Verified against a three-level tree: filtering by the top category with the
+  > stock filter returns nothing while six products sit beneath it; the strip
+  > returns all six, including items three levels down.
+
+### Changed
+
+- `DoliCatalogBrowser` gained an `all` mode that applies no sale or purchase
+  flag. The product list shows everything regardless of those flags, so counting
+  only sellable items would have advertised numbers the list then contradicted.
+
 ## [1.3.2] - 2026-08-23
 
 ### Changed
@@ -204,6 +235,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.4.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.0
 [1.3.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.2
 [1.3.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.0

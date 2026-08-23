@@ -111,6 +111,132 @@ class ActionsDoliCatalog
 	}
 
 	/**
+	 * Category filter strip above the native product list.
+	 *
+	 * Off by default; enabled with DOLICATALOG_LIST_TREE.
+	 *
+	 * The strip drives Dolibarr's own category filter rather than injecting SQL,
+	 * so sorting, column choice, pagination, mass actions and export all keep
+	 * working untouched. Selecting a category submits the ids of that category
+	 * AND every category beneath it with the filter's OR operator, which makes
+	 * filtering by a parent actually include its subtree - something the stock
+	 * filter cannot do, since it matches the chosen category exactly.
+	 *
+	 * @param  array<string,mixed> $parameters  Hook parameters
+	 * @param  CommonObject        $object      Current object
+	 * @param  string              $action      Current action
+	 * @param  HookManager         $hookmanager Hook manager
+	 * @return int                              Always 0
+	 */
+	public function printFieldPreListTitle($parameters, &$object, &$action, $hookmanager)
+	{
+		global $langs, $user;
+
+		if (!isModEnabled('dolicatalog') || !getDolGlobalInt('DOLICATALOG_LIST_TREE')) {
+			return 0;
+		}
+		if (!$user->hasRight('dolicatalog', 'picker', 'use')) {
+			return 0;
+		}
+		if (!$user->hasRight('produit', 'lire') && !$user->hasRight('service', 'lire')) {
+			return 0;
+		}
+
+		$langs->loadLangs(array('dolicatalog@dolicatalog', 'categories'));
+
+		dol_include_once('/dolicatalog/class/dolicatalogbrowser.class.php');
+		dol_include_once('/dolicatalog/lib/dolicatalog.lib.php');
+
+		$browser = new DoliCatalogBrowser($this->db);
+
+		// Our own parameter: which node the strip is sitting on. Core ignores it,
+		// and it survives the list's POST because the strip renders inside the
+		// search form.
+		$current = GETPOSTINT('dolicatalog_listcat');
+
+		// The list shows products regardless of sale or purchase flags, so the
+		// counts here must not filter on them either.
+		$countFilters = array('mode' => 'all');
+
+		$children = $current > 0
+			? $browser->getChildCategories($current)
+			: $browser->getRootCategories();
+
+		$out = '<div class="divsearchfield dolicatalog-listtree" id="dolicatalog-listtree">';
+
+		// Breadcrumb.
+		$out .= '<div class="dolicatalog-lt-crumbs">';
+		$out .= '<span class="dolicatalog-lt-label">'.dol_escape_htmltag($langs->trans('DoliCatalogCategories')).'</span>';
+		$out .= '<button type="button" class="dolicatalog-lt-crumb'.($current > 0 ? '' : ' current').'" data-cat="0">';
+		$out .= dol_escape_htmltag($langs->trans('DoliCatalogRoot'));
+		$out .= '</button>';
+
+		if ($current > 0) {
+			foreach ($browser->getBreadcrumb($current) as $i => $crumb) {
+				$out .= '<span class="dolicatalog-lt-sep">&rsaquo;</span>';
+				$out .= '<button type="button" class="dolicatalog-lt-crumb" data-cat="'.((int) $crumb['id']).'">';
+				$out .= dol_escape_htmltag($crumb['label']);
+				$out .= '</button>';
+			}
+		}
+		$out .= '</div>';
+
+		// Child folders at this level.
+		if (!empty($children)) {
+			$out .= '<div class="dolicatalog-lt-folders">';
+			foreach ($children as $cat) {
+				$count = $browser->countProductsInCategory($cat['id'], $countFilters);
+				$style = $cat['color'] ? ' style="border-left-color:#'.dol_escape_htmltag($cat['color']).'"' : '';
+
+				$out .= '<button type="button" class="dolicatalog-lt-folder" data-cat="'.((int) $cat['id']).'"'.$style.'>';
+				$out .= '<span class="fa fa-folder"></span> ';
+				$out .= dol_escape_htmltag($cat['label']);
+				$out .= '<span class="dolicatalog-lt-count">'.((int) $count).'</span>';
+				$out .= '</button>';
+			}
+			$out .= '</div>';
+		} elseif ($current > 0) {
+			$out .= '<div class="dolicatalog-lt-leaf">'.dol_escape_htmltag($langs->trans('DoliCatalogNoSubcategories')).'</div>';
+		}
+
+		if ($current > 0) {
+			$out .= '<button type="button" class="dolicatalog-lt-clear" data-cat="0">';
+			$out .= dol_escape_htmltag($langs->trans('DoliCatalogClearCategoryFilter'));
+			$out .= '</button>';
+		}
+
+		// Carries the strip position through the list's own POST.
+		$out .= '<input type="hidden" name="dolicatalog_listcat" id="dolicatalog_listcat" value="'.((int) $current).'">';
+		$out .= '</div>';
+
+		// The descendant set for each reachable node, so a click needs no round
+		// trip before it can submit.
+		$subtrees = array();
+		foreach ($children as $cat) {
+			$subtrees[(int) $cat['id']] = array_map('intval', $browser->getDescendantIds($cat['id']));
+		}
+		if ($current > 0) {
+			$subtrees[$current] = array_map('intval', $browser->getDescendantIds($current));
+			foreach ($browser->getBreadcrumb($current) as $crumb) {
+				$cid = (int) $crumb['id'];
+				if (!isset($subtrees[$cid])) {
+					$subtrees[$cid] = array_map('intval', $browser->getDescendantIds($cid));
+				}
+			}
+		}
+
+		$out .= '<script type="application/json" id="dolicatalog-listtree-data">'.json_encode(array('subtrees' => $subtrees)).'</script>';
+		$out .= dolicatalogStylesheetTag();
+		$out .= '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog-listtree.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog-listtree.js')).'"></script>';
+
+		$this->resprints = $out;
+
+		// Must stay 0: a non-zero return makes the list discard every other filter
+		// and print only this one.
+		return 0;
+	}
+
+	/**
 	 * Build the trigger button, modal shell and bootstrap payload.
 	 *
 	 * Returns an empty string whenever the picker should not appear: module off,

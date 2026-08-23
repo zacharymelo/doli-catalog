@@ -37,6 +37,20 @@ It reads native tables only. No core file is modified.
 
 ---
 
+## Category filter on the product list
+
+Optional, off by default. Enable **Category filter on product list** in setup to
+add a category strip above the native product list.
+
+Dolibarr's built-in category filter matches the chosen category exactly, so
+filtering by a parent shows only what is linked directly to it — often nothing.
+The strip submits the category *and its whole subtree*, so filtering by a parent
+includes everything beneath it.
+
+It drives the native filter rather than replacing it, so sorting, columns,
+pagination, mass actions and export keep working, and the selection stays
+visible in the list's own Categories control.
+
 ## The catalogue page
 
 **Products | Services → Products → Catalog** is a standalone browser for the range: click
