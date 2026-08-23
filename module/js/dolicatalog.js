@@ -227,7 +227,10 @@
 		}
 
 		var section = makeEl('div', 'dolicatalog-section');
-		section.appendChild(makeEl('div', 'dolicatalog-section-title', label('DoliCatalogCategories', 'Categories')));
+		section.appendChild(makeEl('div', 'dolicatalog-section-title',
+			state.view === 'search'
+				? label('DoliCatalogMatchingCategories', 'Matching categories')
+				: label('DoliCatalogCategories', 'Categories')));
 
 		var grid = makeEl('div', 'dolicatalog-folders');
 		categories.forEach(function (cat) {
@@ -354,11 +357,28 @@
 
 		var tdLabel = makeEl('td', 'ppc-label');
 		tdLabel.appendChild(makeEl('div', 'dolicatalog-label-main', p.label));
-		if (p.description) {
+
+		// Browsing already shows position via the breadcrumb. Searching,
+		// favourites and recents do not, so a bare row leaves the reader with
+		// no idea what the item belongs to. Showing the path also teaches the
+		// catalogue's shape to somebody who does not know it yet.
+		var showPath = (state.view !== 'browse') && p.paths && p.paths.length;
+		if (showPath) {
+			var pathLine = makeEl('div', 'dolicatalog-label-path');
+			pathLine.appendChild(makeEl('span', 'fa fa-folder-open dolicatalog-pathicon'));
+			pathLine.appendChild(document.createTextNode(' ' + p.paths[0]));
+			if (p.paths.length > 1) {
+				pathLine.appendChild(makeEl('span', 'dolicatalog-pathmore', '+' + (p.paths.length - 1)));
+			}
+			tdLabel.appendChild(pathLine);
+		} else if (p.description) {
 			tdLabel.appendChild(makeEl('div', 'dolicatalog-label-desc', p.description));
 		}
 		// Both label and description are clipped by CSS, so keep the full text here.
-		tdLabel.title = p.description ? p.label + '\n' + p.description : p.label;
+		var tip = p.label;
+		if (p.description) { tip += '\n' + p.description; }
+		if (p.paths && p.paths.length) { tip += '\n\n' + p.paths.join('\n'); }
+		tdLabel.title = tip;
 		row.appendChild(tdLabel);
 
 		row.appendChild(makeEl('td', 'ppc-price', money(p.price)));

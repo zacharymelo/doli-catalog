@@ -301,7 +301,7 @@ class ActionsDoliCatalog
 			'DoliCatalogTruncated', 'DoliCatalogCategories', 'DoliCatalogItems', 'DoliCatalogError',
 			'DoliCatalogAddFavorite', 'DoliCatalogRemoveFavorite', 'DoliCatalogAdded',
 			'DoliCatalogNothingSelected', 'DoliCatalogSearchAll', 'DoliCatalogClearSelection',
-			'DoliCatalogEmptyCategory', 'DoliCatalogAdding', 'DoliCatalogThisSupplierOnly',
+			'DoliCatalogEmptyCategory', 'DoliCatalogAdding', 'DoliCatalogMatchingCategories', 'DoliCatalogThisSupplierOnly',
 			'DoliCatalogOpenCategory', 'DoliCatalogSelectItem', 'DoliCatalogQtyTooltip',
 			'DoliCatalogStockWarehouse', 'DoliCatalogStockAll', 'DoliCatalogServiceNoStock',
 			'DoliCatalogClearSelectionTooltip', 'DoliCatalogRemoveItem',

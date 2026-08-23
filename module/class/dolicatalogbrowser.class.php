@@ -266,6 +266,131 @@ class DoliCatalogBrowser
 	}
 
 	/**
+	 * Categories whose label matches a search term, plus everything beneath them.
+	 *
+	 * This is what lets somebody who knows the catalogue by shape rather than by
+	 * product name find things: typing a category name surfaces its contents,
+	 * even when no product's own text contains the word.
+	 *
+	 * @param  string $term Search term
+	 * @return int[]        Category ids, descendants included
+	 */
+	public function findCategoryIdsByLabel($term)
+	{
+		$term = trim((string) $term);
+		if ($term === '') {
+			return array();
+		}
+
+		$needle = $this->db->escape($this->db->escapeforlike($term));
+
+		$sql = "SELECT c.rowid FROM ".MAIN_DB_PREFIX."categorie as c";
+		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+		$sql .= " AND c.label LIKE '%".$needle."%'";
+
+		$matched = array();
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			while ($o = $this->db->fetch_object($resql)) {
+				$matched[] = (int) $o->rowid;
+			}
+			$this->db->free($resql);
+		}
+
+		if (empty($matched)) {
+			return array();
+		}
+
+		// Matching a parent must also surface what sits under it.
+		$all = array();
+		foreach ($matched as $id) {
+			foreach ($this->getDescendantIds($id) as $d) {
+				$all[$d] = $d;
+			}
+		}
+
+		return array_values($all);
+	}
+
+	/**
+	 * Categories whose label matches a term, as browsable folders.
+	 *
+	 * Returned in the same shape as getChildCategories() so a search can offer
+	 * "open this category" alongside the product hits, turning a search into a
+	 * navigation shortcut.
+	 *
+	 * @param  string                        $term    Search term
+	 * @param  array<string,mixed>           $filters Filters for the product counts
+	 * @return array<int,array<string,mixed>>         Matching categories
+	 */
+	public function searchCategories($term, $filters = array())
+	{
+		$term = trim((string) $term);
+		if ($term === '') {
+			return array();
+		}
+
+		$needle = $this->db->escape($this->db->escapeforlike($term));
+
+		$sql = "SELECT c.rowid, c.label, c.color, c.description, c.position";
+		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
+		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+		$sql .= " AND c.label LIKE '%".$needle."%'";
+		$sql .= " ORDER BY c.label ASC";
+		$sql .= $this->db->plimit(20, 0);
+
+		return $this->fetchCategoryRows($sql);
+	}
+
+	/**
+	 * Every product category as id => "Parent / Child / Leaf".
+	 *
+	 * Built from one flat SELECT and assembled in PHP, so showing a path on a
+	 * search result costs nothing per row.
+	 *
+	 * @return array<int,string> Category id => display path
+	 */
+	public function getCategoryPathMap()
+	{
+		$sql = "SELECT c.rowid, c.label, c.fk_parent";
+		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
+		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+
+		$nodes = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			return array();
+		}
+		while ($o = $this->db->fetch_object($resql)) {
+			$nodes[(int) $o->rowid] = array('label' => (string) $o->label, 'parent' => (int) $o->fk_parent);
+		}
+		$this->db->free($resql);
+
+		$paths = array();
+		foreach ($nodes as $id => $node) {
+			$parts = array();
+			$cur = $id;
+			$seen = array();
+			$guard = 0;
+
+			// Depth-guarded: llx_categorie permits a cycle.
+			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < 64) {
+				$seen[$cur] = true;
+				$guard++;
+				array_unshift($parts, $nodes[$cur]['label']);
+				$cur = $nodes[$cur]['parent'];
+			}
+
+			$paths[$id] = implode(' / ', $parts);
+		}
+
+		return $paths;
+	}
+
+	/**
 	 * Number of distinct products reachable under a category, subcategories included.
 	 *
 	 * @param  int                                        $catId   Category id
@@ -418,7 +543,19 @@ class DoliCatalogBrowser
 			$sql .= " AND (p.ref LIKE '%".$needle."%'";
 			$sql .= " OR p.label LIKE '%".$needle."%'";
 			$sql .= " OR p.description LIKE '%".$needle."%'";
-			$sql .= " OR p.barcode LIKE '%".$needle."%')";
+			$sql .= " OR p.barcode LIKE '%".$needle."%'";
+
+			// Also match on the name of a category the product sits in, so a
+			// term like "accessories" finds the branch's contents even though
+			// no product's own text contains the word.
+			$labelCatIds = $this->findCategoryIdsByLabel($search);
+			if (!empty($labelCatIds)) {
+				$sql .= " OR EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as cpm";
+				$sql .= " WHERE cpm.fk_product = p.rowid";
+				$sql .= " AND cpm.fk_categorie IN (".$this->db->sanitize(implode(',', $labelCatIds)).") )";
+			}
+
+			$sql .= ")";
 		}
 
 		$sql .= " ORDER BY p.ref ASC";
@@ -505,9 +642,34 @@ class DoliCatalogBrowser
 		$favs = $this->getFavoriteIds($userid);
 		$showImages = getDolGlobalInt('DOLICATALOG_SHOW_IMAGES', 1);
 
+		// Where each product sits, so a search hit says what it belongs to
+		// instead of appearing as a bare row with no context.
+		$pathMap = $this->getCategoryPathMap();
+		$memberships = array();
+
+		$sql = "SELECT cp.fk_product, cp.fk_categorie";
+		$sql .= " FROM ".MAIN_DB_PREFIX."categorie_product as cp";
+		$sql .= " WHERE cp.fk_product IN (".$this->db->sanitize(implode(',', $ids)).")";
+
+		$resql = $this->db->query($sql);
+		if ($resql) {
+			while ($o = $this->db->fetch_object($resql)) {
+				$cid = (int) $o->fk_categorie;
+				if (isset($pathMap[$cid])) {
+					$memberships[(int) $o->fk_product][] = $pathMap[$cid];
+				}
+			}
+			$this->db->free($resql);
+		}
+
 		foreach ($rows as $k => $r) {
-			$rows[$k]['is_favorite'] = in_array((int) $r['id'], $favs, true) ? 1 : 0;
-			$rows[$k]['image'] = $showImages ? $this->getThumbnailUrl((int) $r['id'], (string) $r['ref']) : '';
+			$pid = (int) $r['id'];
+			$paths = isset($memberships[$pid]) ? $memberships[$pid] : array();
+			sort($paths);
+
+			$rows[$k]['is_favorite'] = in_array($pid, $favs, true) ? 1 : 0;
+			$rows[$k]['image'] = $showImages ? $this->getThumbnailUrl($pid, (string) $r['ref']) : '';
+			$rows[$k]['paths'] = $paths;
 		}
 	}
 

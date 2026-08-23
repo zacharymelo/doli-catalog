@@ -135,10 +135,17 @@ switch ($action) {
 
 		$products = $catalog->listProducts($searchFilters);
 
+		// A term matching a category name is offered as a folder too, so the
+		// search doubles as a shortcut into that branch.
+		$matchedCategories = $catalog->searchCategories($search, $filters);
+		foreach ($matchedCategories as $k => $mc) {
+			$matchedCategories[$k]['count'] = $catalog->countProductsInCategory($mc['id'], $filters);
+		}
+
 		dolicatalog_json(array(
 			'ok' => true,
 			'breadcrumb' => $category > 0 ? $catalog->getBreadcrumb($category) : array(),
-			'categories' => array(),
+			'categories' => $matchedCategories,
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
 			'scoped' => $category > 0 ? 1 : 0,

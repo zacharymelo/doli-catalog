@@ -565,3 +565,28 @@ body.dolicatalog-open .select2-dropdown,
 body.dolicatalog-open .ui-autocomplete {
 	z-index: 10060;
 }
+
+/* Category path shown on rows that have no surrounding context (search,
+   favourites, recents). Teaches where an item lives while it is being picked. */
+
+.dolicatalog-label-path {
+	font-size: 11px;
+	color: #64748b;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 420px;
+	margin-top: 1px;
+}
+
+.dolicatalog-pathicon { color: #f59e0b; font-size: 10px; }
+
+.dolicatalog-pathmore {
+	display: inline-block;
+	background: #f1f5f9;
+	color: #475569;
+	border-radius: 3px;
+	padding: 0 5px;
+	font-size: 10px;
+	margin-left: 5px;
+}

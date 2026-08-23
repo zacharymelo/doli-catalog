@@ -100,3 +100,4 @@ DoliCatalogServiceNoStock = Les services ne sont pas stockes
 DoliCatalogClearSelectionTooltip = Vider la selection
 DoliCatalogFavoritesTooltip = N'afficher que les articles marques comme favoris
 DoliCatalogRecentTooltip = Afficher les articles choisis recemment
+DoliCatalogMatchingCategories = Categories correspondantes

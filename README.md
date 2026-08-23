@@ -27,7 +27,7 @@ It reads native tables only. No core file is modified.
 
 **Browse.** Unlimited-depth category trees taken straight from native Dolibarr product categories. Folders show their configured colour and a count of everything beneath them, subcategories included. A breadcrumb tracks where you are and jumps back to any level.
 
-**Search.** One box covering reference, label, description and barcode. Search from the root and it covers the whole catalog; search from inside a category and it stays within that branch and its subcategories, so a common term does not drown you in unrelated hits.
+**Search.** One box covering reference, label, description, barcode **and category name**. Typing a category name returns what is inside it to any depth, so somebody who knows the catalog by shape rather than by product name can still find things — searching "docking" finds the docks even though neither product is called that. Naming a parent reaches its whole branch. A matching category is offered as a folder alongside the hits, and every result shows its category path (`Hardware / Accessories / Docking stations`) so a hit is never a bare row with no context. Search from the root and it covers the whole catalog; search from inside a category and it stays within that branch and its subcategories, so a common term does not drown you in unrelated hits.
 
 **Filter.** Products vs services. Warehouse — which also switches the stock column from the all-warehouse total to that warehouse's quantity. On purchase documents, an optional *This supplier only* toggle.
 

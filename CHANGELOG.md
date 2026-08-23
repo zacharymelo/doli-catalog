@@ -14,6 +14,40 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.1.0] - 2026-08-23
+
+### Added
+
+- **Search matches category names.** Typing a category name now returns the
+  products inside it, and inside everything beneath it. Previously the search
+  looked only at a product's own reference, label, description and barcode, so
+  someone who knew the catalogue by its shape rather than by product names had
+  no way in — searching "docking" found nothing when the products were called
+  "USB-C Dock 180W" and "Thunderbolt Dock".
+
+  Matching a parent reaches the whole branch: "Hardware" returns everything
+  under Hardware regardless of depth.
+
+- **A matching category is offered as a folder.** When the term matches a
+  category, it appears above the product hits as a folder card with its item
+  count, so a search doubles as a shortcut into that branch.
+
+- **Search results show where each item lives.** Hits now carry their category
+  path — `Hardware / Accessories / Docking stations` — so a result is not a bare
+  row with no context. The path is also shown on favourites and recents, which
+  have the same problem. Browsing still relies on the breadcrumb, since position
+  is already obvious there.
+
+  This is aimed at people learning an unfamiliar catalogue: they search the word
+  they know, see where it sits, and start browsing straight to the right branch.
+
+### Notes
+
+- Category paths are assembled from one flat query per request, so showing them
+  costs nothing per row.
+- Scoping is unchanged: searching inside a category still stays within that
+  branch.
+
 ## [1.0.1] - 2026-08-22
 
 ### Fixed
@@ -79,5 +113,6 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.1.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.1.0
 [1.0.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.1
 [1.0.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.0
