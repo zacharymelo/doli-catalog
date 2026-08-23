@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.3.1';
+		$this->version = '1.3.2';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';
@@ -113,15 +113,18 @@ class modDoliCatalog extends DolibarrModules
 
 		// No menu entries: the module surfaces itself inside existing document pages.
 		// A standalone browse page, so the catalogue can be explored outside a
-		// document. It lives in the Products | Services left menu rather than
-		// taking a top-level entry. Position 990 keeps it just above Doli Curate's
-		// entry when both modules are installed.
+		// document.
+		//
+		// It nests inside the native Products group (fk_leftmenu=product),
+		// alongside List, Stocks and Statistics, rather than standing as its own
+		// section header next to Products and Services. It is one more way to
+		// look at products, not a peer of the whole product area. No prefix icon
+		// for the same reason: its siblings in that group do not carry one.
 		$this->menu = array(
 			array(
-				'fk_menu'  => 'fk_mainmenu=products',
+				'fk_menu'  => 'fk_mainmenu=products,fk_leftmenu=product',
 				'type'     => 'left',
 				'titre'    => 'DoliCatalogBrowseMenu',
-				'prefix'   => img_picto('', $this->picto, 'class="paddingright pictofixedwidth"'),
 				'mainmenu' => 'products',
 				'leftmenu' => 'dolicatalog_browse',
 				'url'      => '/dolicatalog/browse.php',

@@ -14,6 +14,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.3.2] - 2026-08-23
+
+### Changed
+
+- **The Catalog menu entry now sits inside the Products group** — alongside New
+  product, List, Stocks and Statistics — instead of standing as its own section
+  header next to Products and Services. It is one more way to look at products,
+  not a peer of the whole product area. The prefix icon was dropped for the same
+  reason: its siblings in that group do not carry one.
+
+  > Requires disabling and re-enabling the module: menu rows are written to
+  > `llx_menu` at activation, so the old placement persists until then.
+
 ## [1.3.1] - 2026-08-23
 
 ### Fixed
@@ -191,6 +204,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.3.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.2
 [1.3.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.1
 [1.3.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.0
 [1.2.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.2.0
