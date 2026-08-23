@@ -94,7 +94,6 @@ class DoliCatalogBrowser
 		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
 		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
 		$sql .= " AND c.entity IN (".getEntity('category').")";
-		$sql .= " AND c.visible = 1";
 
 		if ($configured !== '') {
 			$ids = array();
@@ -134,7 +133,6 @@ class DoliCatalogBrowser
 		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
 		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
 		$sql .= " AND c.entity IN (".getEntity('category').")";
-		$sql .= " AND c.visible = 1";
 		$sql .= " AND c.fk_parent = ".$parentId;
 		$sql .= " ORDER BY c.position ASC, c.label ASC";
 

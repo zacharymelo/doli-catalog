@@ -555,3 +555,13 @@ body.dolicatalog-open {
 	padding: 8px 4px;
 	border: none;
 }
+
+/* A themed or third-party select enhancement appends its dropdown panel to
+   <body>, which would otherwise paint underneath this modal's overlay. The
+   warehouse filter avoids the problem by rendering a plain select, but keep a
+   guard scoped to the open modal so any other enhanced control stays reachable. */
+body.dolicatalog-open .select2-container--open,
+body.dolicatalog-open .select2-dropdown,
+body.dolicatalog-open .ui-autocomplete {
+	z-index: 10060;
+}

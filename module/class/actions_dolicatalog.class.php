@@ -266,7 +266,21 @@ class ActionsDoliCatalog
 
 		$formproduct = new FormProduct($this->db);
 		$html = '<span class="dolicatalog-warehouse" title="'.dol_escape_htmltag($langs->trans('DoliCatalogWarehouseTooltip')).'">';
-		$html .= $formproduct->selectWarehouses(-1, 'dolicatalog_warehouse', '', 1, 0, 0, $langs->trans('DoliCatalogAllWarehouses'));
+		// forcecombo = 1 renders a plain <select> instead of a select2 widget.
+		// select2 appends its dropdown panel to <body>, which puts it underneath
+		// this modal's overlay; a native select is drawn by the browser and always
+		// paints on top, so the picker cannot trap it behind the dialog.
+		$html .= $formproduct->selectWarehouses(
+			-1,
+			'dolicatalog_warehouse',
+			'',
+			1,
+			0,
+			0,
+			$langs->trans('DoliCatalogAllWarehouses'),
+			0,
+			1
+		);
 		$html .= '</span>';
 
 		return $html;

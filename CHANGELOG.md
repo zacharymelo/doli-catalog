@@ -4,6 +4,25 @@ All notable changes to Doli Catalog are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-22
+
+### Fixed
+
+- **Category browsing showed nothing.** The category queries carried an
+  `AND visible = 1` filter that Dolibarr's own tree query
+  (`Categorie::get_full_arbo()`) does not use. `Categorie::create()` inserts
+  `visible` from an uninitialised property, so it lands as `''` and is coerced
+  to `0` in a `NOT NULL tinyint` column — meaning categories created through the
+  Dolibarr interface are stored with `visible = 0` and were all filtered out.
+  Search was unaffected, which is why it kept working while browsing came back
+  empty. The filter has been removed, matching core behaviour.
+
+- **Warehouse dropdown opened behind the modal.** `FormProduct::selectWarehouses()`
+  wraps the field in select2, which appends its dropdown panel to `<body>`, below
+  the picker overlay's stacking context. The filter now renders as a plain
+  `<select>` (`forcecombo = 1`), which the browser draws above page content. A
+  scoped `z-index` guard covers any other enhanced control that reaches the modal.
+
 ## [1.0.0] - 2026-08-22
 
 First release.
@@ -50,4 +69,5 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.0.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.1
 [1.0.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.0.0
