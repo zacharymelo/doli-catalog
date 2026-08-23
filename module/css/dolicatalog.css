@@ -796,7 +796,14 @@ body.dolicatalog-open .ui-autocomplete {
 
 .dolicatalog-listtree {
 	width: 100%;
-	padding: 6px 0 2px;
+	/* Standalone band between the title bar and the table, so it reads as
+	   navigation above the list rather than as one more column filter. */
+	padding: 9px 12px 10px;
+	margin: 0 0 6px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 7px;
+	box-sizing: border-box;
 }
 
 .dolicatalog-lt-crumbs {

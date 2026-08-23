@@ -105,4 +105,41 @@
 			apply(btn.getAttribute('data-cat'));
 		});
 	});
+
+	/**
+	 * Lift the strip out of the filter well and place it directly above the
+	 * table, below the title and pagination bar.
+	 *
+	 * printFieldPreListTitle is the only hook the list offers before the table,
+	 * and its output is rendered into the filter well - which puts the strip
+	 * inside the table's bordered box, reading as part of the column filters
+	 * rather than as navigation above them. There is no hook in the gap between
+	 * print_barre_liste() and that well, so the position is corrected here.
+	 *
+	 * The strip stays inside the search form either way: everything from the
+	 * title bar to the table is within it, so submitting still carries the
+	 * user's other filters.
+	 */
+	function reposition() {
+		var anchor = form.querySelector('.liste_titre_bydiv') || form.querySelector('.div-table-responsive');
+		if (!anchor || anchor === strip) {
+			return;
+		}
+
+		var well = strip.closest ? strip.closest('.liste_titre_bydiv') : null;
+
+		anchor.parentNode.insertBefore(strip, anchor);
+
+		// The well exists only to hold hook output. If the strip was its only
+		// content, leaving it behind would draw an empty bordered band.
+		if (well && well !== strip && well.textContent.trim() === '' && !well.querySelector('input, select, button, a')) {
+			well.parentNode.removeChild(well);
+		}
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', reposition);
+	} else {
+		reposition();
+	}
 })();

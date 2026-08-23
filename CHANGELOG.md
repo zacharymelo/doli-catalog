@@ -14,6 +14,26 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.4.1] - 2026-08-23
+
+### Changed
+
+- **The product list category strip now sits above the table**, between the
+  title/pagination bar and the filter well, instead of inside the well.
+  Previously it rendered among the column filters, which read as one more filter
+  control rather than as navigation over the list.
+
+  `printFieldPreListTitle` is the only hook the list offers before the table and
+  its output is rendered into that well by design; there is no hook in the gap
+  between `print_barre_liste()` and it. The strip is therefore moved into place
+  on load. It stays inside the search form either way — everything from the
+  title bar to the table is within it — so submitting still carries the user's
+  other filters.
+
+  It is styled as its own band now that it no longer inherits the well's
+  framing. The well itself is left alone when it still holds the native
+  Categories control, and removed only if the strip was its only content.
+
 ## [1.4.0] - 2026-08-23
 
 ### Added
@@ -235,6 +255,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.4.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.1
 [1.4.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.0
 [1.3.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.2
 [1.3.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.1
