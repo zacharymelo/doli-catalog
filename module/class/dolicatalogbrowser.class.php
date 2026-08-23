@@ -536,7 +536,9 @@ class DoliCatalogBrowser
 			$sql .= " AND p.rowid IN (".$this->db->sanitize(implode(',', $clean)).")";
 		}
 
-		// Free-text search across ref, label, description and barcode.
+		// Free-text search across a product's own text, plus the names of the
+		// categories it belongs to. The product-text clauses are the original
+		// behaviour and stay first; the category clause only ever widens the match.
 		$search = isset($filters['search']) ? trim((string) $filters['search']) : '';
 		if ($search !== '') {
 			$needle = $this->db->escape($this->db->escapeforlike($search));
