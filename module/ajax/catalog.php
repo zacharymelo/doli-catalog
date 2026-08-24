@@ -133,7 +133,9 @@ switch ($action) {
 			'offset' => $offset,
 			// Only meaningful once inside a category; at the root the folders
 			// are the navigation and a tag list would just be the whole tree.
-			'facets' => $category > 0 ? $catalog->getFacets($scoped) : array(),
+			'facets' => $category > 0
+				? $catalog->getFacets($scoped + array('excludeCategories' => array_column($decorated, 'id')))
+				: array(),
 		));
 		break;
 
@@ -165,7 +167,7 @@ switch ($action) {
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
 			'offset' => $offset,
-			'facets' => $catalog->getFacets($searchFilters),
+			'facets' => $catalog->getFacets($searchFilters + array('excludeCategories' => array_column($matchedCategories, 'id'))),
 			'scoped' => $category > 0 ? 1 : 0,
 		));
 		break;

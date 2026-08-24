@@ -575,8 +575,10 @@ class DoliCatalogBrowser
 	 *
 	 * Selected tags narrow together: picking two returns products carrying both.
 	 *
-	 * Categories that define the current position are excluded: the current
-	 * branch is already navigation, and offering it as a filter would do nothing.
+	 * Categories that define the current position are excluded, as are any the
+	 * caller names in 'excludeCategories' - typically the folders it is drawing
+	 * directly above. Both are already navigation, and offering them as filters
+	 * would duplicate a control the user can see.
 	 * Currently selected facets are always returned, even at zero, so a selected
 	 * chip never disappears and strand the user with no way to switch it off.
 	 *
@@ -600,6 +602,15 @@ class DoliCatalogBrowser
 		if (!empty($scope['catIds'])) {
 			$exclude = $scope['catIds'];
 		}
+
+		// Anything already on screen as a folder is redundant here: filtering by
+		// it does the same as opening it, so offering both is just clutter. The
+		// caller passes the folders it is about to draw, since only it knows
+		// which ones survived its own hide-empty and search rules.
+		foreach ($this->cleanFacetIds(isset($filters['excludeCategories']) ? $filters['excludeCategories'] : array()) as $id) {
+			$exclude[] = $id;
+		}
+		$exclude = array_values(array_unique($exclude));
 
 		$sql = "SELECT c.rowid, c.label, c.color, COUNT(DISTINCT p.rowid) as cnt";
 		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";

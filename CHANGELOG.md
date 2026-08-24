@@ -14,6 +14,20 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.5.2] - 2026-08-24
+
+### Changed
+
+- **A tag is no longer offered when it is already a folder on screen.** Browsing
+  a category that lists items filed in both it and one of its subcategories
+  showed that subcategory twice: once as a folder to open, once as a tag to
+  filter by. Filtering by it does the same thing as opening it, so the chip was
+  pure clutter.
+
+  The endpoint now tells `getFacets()` which folders it is drawing, since only
+  it knows which survived its own hide-empty and search rules. Genuinely
+  cross-cutting tags are unaffected.
+
 ## [1.5.1] - 2026-08-24
 
 ### Changed
@@ -300,6 +314,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.5.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.2
 [1.5.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.1
 [1.5.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.0
 [1.4.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.1
