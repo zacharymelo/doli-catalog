@@ -17,9 +17,25 @@ if [ -z "$VERSION" ]; then
 	exit 1
 fi
 
-case "$VERSION" in
-	*-*) echo "build.sh: packaging pre-release $VERSION (not for production)" >&2 ;;
-esac
+# Dolibarr's deployer validates the filename against
+#   /^(module[a-zA-Z0-9]*_|theme_|).*-([0-9][0-9.]*)(\s\(\d+\)\s)?\.zip$/i
+# and derives the module name by stripping that same version segment. The part
+# before .zip must therefore be digits and dots only: a filename carrying a
+# pre-release suffix is refused outright with "filename does not match Dolibarr
+# package rules", so it cannot even be uploaded to test.
+#
+# The descriptor keeps the full version, which is what Dolibarr shows in the
+# module list; only the filename is reduced.
+ZIPVERSION="$(printf '%s' "$VERSION" | sed -E 's/^([0-9][0-9.]*).*/\1/')"
+
+if [ -z "$ZIPVERSION" ]; then
+	echo "build.sh: version '$VERSION' has no numeric part to name the zip with" >&2
+	exit 1
+fi
+
+if [ "$ZIPVERSION" != "$VERSION" ]; then
+	echo "build.sh: $VERSION is a pre-release; packaging as $ZIPVERSION so Dolibarr will accept the upload" >&2
+fi
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
@@ -30,7 +46,7 @@ cp -R "$ROOT/module/." "$STAGE/$MODULE/"
 # Never ship development leftovers.
 find "$STAGE/$MODULE" -name '.DS_Store' -delete
 
-OUT="$ROOT/$MODULE-$VERSION.zip"
+OUT="$ROOT/$MODULE-$ZIPVERSION.zip"
 rm -f "$OUT"
 (cd "$STAGE" && zip -rq "$OUT" "$MODULE")
 
