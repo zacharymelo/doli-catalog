@@ -6,11 +6,20 @@ set -euo pipefail
 MODULE=dolicatalog
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-VERSION="$(grep -oE "this->version = '[0-9.]+'" "$ROOT/module/core/modules/modDoliCatalog.class.php" | grep -oE "[0-9.]+")"
+# Accepts a pre-release suffix (1.6.0-dev) so a branch can be packaged for
+# testing. `|| true` matters: under `set -e` a non-matching grep aborts the
+# script before the check below can report why, which fails silently.
+VERSION="$(grep -oE "this->version *= *'[^']+'" "$ROOT/module/core/modules/modDoliCatalog.class.php" \
+	| head -1 | sed -E "s/.*'([^']+)'.*/\1/" || true)"
+
 if [ -z "$VERSION" ]; then
-	echo "Could not read version from the module descriptor" >&2
+	echo "build.sh: could not read \$this->version from the module descriptor" >&2
 	exit 1
 fi
+
+case "$VERSION" in
+	*-*) echo "build.sh: packaging pre-release $VERSION (not for production)" >&2 ;;
+esac
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
