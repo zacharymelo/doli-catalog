@@ -36,6 +36,14 @@ class DoliCatalogBrowser
 	/** Product-type category discriminator in llx_categorie.type */
 	const CATEGORY_TYPE_PRODUCT = 0;
 
+	/**
+	 * Depth guard for tree walks.
+	 *
+	 * llx_categorie has no constraint preventing a category from becoming its own
+	 * ancestor, so every walk needs a ceiling as well as a seen-set.
+	 */
+	const MAX_TREE_DEPTH = 64;
+
 	/** Hard ceiling on rows returned regardless of configuration */
 	const MAX_ROWS_HARD_LIMIT = 500;
 
@@ -186,7 +194,7 @@ class DoliCatalogBrowser
 		$seen = array();
 		$guard = 0;
 
-		while ($catId > 0 && $guard < 64) {
+		while ($catId > 0 && $guard < self::MAX_TREE_DEPTH) {
 			$guard++;
 			if (isset($seen[$catId])) {
 				break; // cycle in the category tree
@@ -236,7 +244,7 @@ class DoliCatalogBrowser
 		$frontier = array($catId);
 		$guard = 0;
 
-		while (!empty($frontier) && $guard < 64) {
+		while (!empty($frontier) && $guard < self::MAX_TREE_DEPTH) {
 			$guard++;
 
 			$sql = "SELECT c.rowid FROM ".MAIN_DB_PREFIX."categorie as c";
@@ -391,7 +399,7 @@ class DoliCatalogBrowser
 			$guard = 0;
 
 			// Depth-guarded: llx_categorie permits a cycle.
-			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < 64) {
+			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < self::MAX_TREE_DEPTH) {
 				$seen[$cur] = true;
 				$guard++;
 				array_unshift($parts, $nodes[$cur]['label']);
@@ -507,15 +515,39 @@ class DoliCatalogBrowser
 			}
 		}
 
-		// Cross-cutting tag filter, ANDed: "inside this category, tagged A *and*
-		// B". One EXISTS per tag rather than a single IN - an IN would match a
-		// product carrying any one of them, which is a different question.
+		// Cross-cutting tag filter.
+		//
+		// Attributes always narrow each other: Material AND Thread Size. Within
+		// one attribute the caller chooses, because both readings are useful on
+		// real data - two Thread Sizes selected means the reducer carrying both
+		// (all) or anything in either size (any).
 		$facets = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
-		foreach ($facets as $i => $facetId) {
-			$alias = 'cpf'.((int) $i);
-			$where .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as ".$alias;
-			$where .= " WHERE ".$alias.".fk_product = p.rowid";
-			$where .= " AND ".$alias.".fk_categorie = ".((int) $facetId).")";
+		if (!empty($facets)) {
+			$anyGroups = $this->cleanFacetIds(isset($filters['facetsAny']) ? $filters['facetsAny'] : array());
+			$alias = 0;
+
+			foreach ($this->bucketFacetsByGroup($facets) as $groupId => $ids) {
+				// "Any" only means something with more than one value, and never
+				// applies to loose tags, which have no attribute to be any of.
+				$useAny = ($groupId > 0 && count($ids) > 1 && in_array($groupId, $anyGroups, true));
+
+				if ($useAny) {
+					$a = 'cpf'.$alias++;
+					$where .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as ".$a;
+					$where .= " WHERE ".$a.".fk_product = p.rowid";
+					$where .= " AND ".$a.".fk_categorie IN (".$this->db->sanitize(implode(',', $ids)).") )";
+					continue;
+				}
+
+				// One EXISTS per value: a single IN here would match a product
+				// carrying any one of them, which is the other question.
+				foreach ($ids as $one) {
+					$a = 'cpf'.$alias++;
+					$where .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as ".$a;
+					$where .= " WHERE ".$a.".fk_product = p.rowid";
+					$where .= " AND ".$a.".fk_categorie = ".((int) $one).")";
+				}
+			}
 		}
 
 		// Free-text search across a product's own text, plus the names of the
@@ -543,6 +575,28 @@ class DoliCatalogBrowser
 	}
 
 	/**
+	 * Group a facet selection by the attribute each value belongs to.
+	 *
+	 * Loose tags collect under key 0; they have no attribute, so they always
+	 * narrow individually.
+	 *
+	 * @param  int[] $facets Selected category ids
+	 * @return array<int,int[]> Attribute id => its selected values
+	 */
+	private function bucketFacetsByGroup($facets)
+	{
+		$groupMap = $this->getAttributeGroupMap();
+		$buckets = array();
+
+		foreach ($facets as $id) {
+			$gid = isset($groupMap[$id]) ? (int) $groupMap[$id]['id'] : 0;
+			$buckets[$gid][] = (int) $id;
+		}
+
+		return $buckets;
+	}
+
+	/**
 	 * Normalise a facet selection to positive integers.
 	 *
 	 * @param  mixed $facets Raw selection
@@ -563,6 +617,100 @@ class DoliCatalogBrowser
 		}
 
 		return array_values($out);
+	}
+
+	/**
+	 * The configured roots whose children name an attribute.
+	 *
+	 * @return int[] Category ids
+	 */
+	public function getAttributeRootIds()
+	{
+		$raw = trim(getDolGlobalString('DOLICATALOG_ATTRIBUTE_ROOTS', ''));
+		if ($raw === '') {
+			return array();
+		}
+
+		$out = array();
+		foreach (explode(',', $raw) as $chunk) {
+			$id = (int) trim($chunk);
+			if ($id > 0) {
+				$out[$id] = $id;
+			}
+		}
+
+		return array_values($out);
+	}
+
+	/**
+	 * Map every category beneath an attribute root to the group that names it.
+	 *
+	 * The group is the ancestor whose parent is the attribute root, not the
+	 * category's immediate parent. Those differ as soon as an attribute has any
+	 * depth of its own - a value nested two levels down still belongs to the
+	 * attribute at the top, not to the value above it.
+	 *
+	 * @return array<int,array{id:int,label:string,position:int}> Category id => its group
+	 */
+	public function getAttributeGroupMap()
+	{
+		$roots = $this->getAttributeRootIds();
+		if (empty($roots)) {
+			return array();
+		}
+
+		$sql = "SELECT c.rowid, c.label, c.fk_parent, c.position";
+		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
+		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+
+		$nodes = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return array();
+		}
+		while ($o = $this->db->fetch_object($resql)) {
+			$nodes[(int) $o->rowid] = array(
+				'label' => (string) $o->label,
+				'parent' => (int) $o->fk_parent,
+				'position' => (int) $o->position,
+			);
+		}
+		$this->db->free($resql);
+
+		$rootLookup = array_flip($roots);
+		$map = array();
+
+		foreach ($nodes as $id => $node) {
+			// A group node names an attribute; it is not itself a value.
+			if (isset($rootLookup[$id]) || isset($rootLookup[$node['parent']])) {
+				continue;
+			}
+
+			$cur = $id;
+			$seen = array();
+			$guard = 0;
+
+			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < self::MAX_TREE_DEPTH) {
+				$seen[$cur] = true;
+				$guard++;
+
+				$parent = $nodes[$cur]['parent'];
+				if (isset($rootLookup[$parent])) {
+					$map[$id] = array(
+						'id' => $cur,
+						'label' => $nodes[$cur]['label'],
+						'position' => $nodes[$cur]['position'],
+					);
+					break;
+				}
+
+				$cur = $parent;
+			}
+		}
+
+		return $map;
 	}
 
 	/**
@@ -590,64 +738,64 @@ class DoliCatalogBrowser
 	{
 		$limit = max(1, min((int) $limit, 200));
 
-		// Counts include the current tag selection, because tags AND together:
-		// the number beside an unselected tag is what you would be left with
-		// after adding it, and a zero says plainly that it is a dead end. (Under
-		// OR semantics the selection would have to be excluded here instead, so
-		// this line follows directly from the choice made in
-		// buildProductFilterSql().)
-		$scope = $this->buildProductFilterSql($filters);
-
-		$exclude = array();
-		if (!empty($scope['catIds'])) {
-			$exclude = $scope['catIds'];
-		}
-
-		// Anything already on screen as a folder is redundant here: filtering by
-		// it does the same as opening it, so offering both is just clutter. The
-		// caller passes the folders it is about to draw, since only it knows
-		// which ones survived its own hide-empty and search rules.
-		foreach ($this->cleanFacetIds(isset($filters['excludeCategories']) ? $filters['excludeCategories'] : array()) as $id) {
-			$exclude[] = $id;
-		}
-		$exclude = array_values(array_unique($exclude));
-
-		$sql = "SELECT c.rowid, c.label, c.color, COUNT(DISTINCT p.rowid) as cnt";
-		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
-		$sql .= $scope['joins'];
-		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cpx ON cpx.fk_product = p.rowid";
-		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie as c ON c.rowid = cpx.fk_categorie";
-		$sql .= $scope['where'];
-		$sql .= " AND c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
-		$sql .= " AND c.entity IN (".getEntity('category').")";
-		if (!empty($exclude)) {
-			$sql .= " AND c.rowid NOT IN (".$this->db->sanitize(implode(',', $exclude)).")";
-		}
-		$sql .= " GROUP BY c.rowid, c.label, c.color";
-		$sql .= " ORDER BY cnt DESC, c.label ASC";
-		$sql .= $this->db->plimit($limit, 0);
-
 		$selected = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
+		$anyGroups = $this->cleanFacetIds(isset($filters['facetsAny']) ? $filters['facetsAny'] : array());
+		$groupMap = $this->getAttributeGroupMap();
+
+		// Counts reflect every filter currently applied, so the number beside a
+		// value is what you are left with after adding it.
+		$rows = $this->countFacetRows($filters, $limit, null);
+
+		// An attribute set to "any" is the exception. Counting its own values
+		// against its own selection would leave every unselected one at zero, so
+		// a third value could never be added to the set. Those are recounted
+		// with that attribute's selection lifted - and only that one; the other
+		// attributes still narrow it.
+		foreach ($anyGroups as $groupId) {
+			$inGroup = array();
+			foreach ($selected as $id) {
+				if (isset($groupMap[$id]) && (int) $groupMap[$id]['id'] === (int) $groupId) {
+					$inGroup[] = $id;
+				}
+			}
+			if (count($inGroup) < 1) {
+				continue;
+			}
+
+			$siblings = array();
+			foreach ($groupMap as $catId => $g) {
+				if ((int) $g['id'] === (int) $groupId) {
+					$siblings[] = (int) $catId;
+				}
+			}
+			if (empty($siblings)) {
+				continue;
+			}
+
+			$relaxed = $filters;
+			$relaxed['facets'] = array_values(array_diff($selected, $inGroup));
+
+			foreach ($this->countFacetRows($relaxed, $limit, $siblings) as $id => $row) {
+				$rows[$id] = $row;
+			}
+		}
 
 		$out = array();
 		$seen = array();
-		$resql = $this->db->query($sql);
-		if (!$resql) {
-			$this->error = $this->db->lasterror();
-			return array();
-		}
-		while ($o = $this->db->fetch_object($resql)) {
-			$id = (int) $o->rowid;
+		foreach ($rows as $id => $row) {
 			$seen[$id] = true;
 			$out[] = array(
 				'id' => $id,
-				'label' => (string) $o->label,
-				'color' => (string) $o->color,
-				'count' => (int) $o->cnt,
+				'label' => $row['label'],
+				'color' => $row['color'],
+				'position' => $row['position'],
+				'count' => $row['count'],
 				'selected' => in_array($id, $selected, true) ? 1 : 0,
+				'group_id' => isset($groupMap[$id]) ? $groupMap[$id]['id'] : 0,
+				'group_label' => isset($groupMap[$id]) ? $groupMap[$id]['label'] : '',
+				'group_position' => isset($groupMap[$id]) ? $groupMap[$id]['position'] : 0,
 			);
 		}
-		$this->db->free($resql);
 
 		// A selected facet pushed past the limit must still render, or it cannot
 		// be unselected.
@@ -664,19 +812,140 @@ class DoliCatalogBrowser
 			$resql = $this->db->query($sql);
 			if ($resql) {
 				while ($o = $this->db->fetch_object($resql)) {
+					$mid = (int) $o->rowid;
 					array_unshift($out, array(
-						'id' => (int) $o->rowid,
+						'id' => $mid,
 						'label' => (string) $o->label,
 						'color' => (string) $o->color,
+						'position' => 0,
 						'count' => 0,
 						'selected' => 1,
+						'group_id' => isset($groupMap[$mid]) ? $groupMap[$mid]['id'] : 0,
+						'group_label' => isset($groupMap[$mid]) ? $groupMap[$mid]['label'] : '',
+						'group_position' => isset($groupMap[$mid]) ? $groupMap[$mid]['position'] : 0,
 					));
 				}
 				$this->db->free($resql);
 			}
 		}
 
+		$this->sortFacets($out);
+
 		return $out;
+	}
+
+	/**
+	 * Count how many products in scope carry each category.
+	 *
+	 * @param  array<string,mixed> $filters    Filters defining the scope
+	 * @param  int                 $limit      Maximum rows
+	 * @param  int[]|null          $restrictTo Only count these categories, or null for all
+	 * @return array<int,array<string,mixed>>  Category id => label/colour/position/count
+	 */
+	private function countFacetRows($filters, $limit, $restrictTo = null)
+	{
+		$scope = $this->buildProductFilterSql($filters);
+
+		$exclude = array();
+		if (!empty($scope['catIds'])) {
+			$exclude = $scope['catIds'];
+		}
+
+		// Anything already on screen as a folder is redundant here: filtering by
+		// it does the same as opening it, so offering both is just clutter. The
+		// caller passes the folders it is about to draw, since only it knows
+		// which ones survived its own hide-empty and search rules.
+		foreach ($this->cleanFacetIds(isset($filters['excludeCategories']) ? $filters['excludeCategories'] : array()) as $id) {
+			$exclude[] = $id;
+		}
+		$exclude = array_values(array_unique($exclude));
+
+		$sql = "SELECT c.rowid, c.label, c.color, c.position, COUNT(DISTINCT p.rowid) as cnt";
+		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
+		$sql .= $scope['joins'];
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cpx ON cpx.fk_product = p.rowid";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie as c ON c.rowid = cpx.fk_categorie";
+		$sql .= $scope['where'];
+		$sql .= " AND c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+		if (!empty($exclude)) {
+			$sql .= " AND c.rowid NOT IN (".$this->db->sanitize(implode(',', $exclude)).")";
+		}
+		if (is_array($restrictTo)) {
+			if (empty($restrictTo)) {
+				return array();
+			}
+			$sql .= " AND c.rowid IN (".$this->db->sanitize(implode(',', $restrictTo)).")";
+		}
+		$sql .= " GROUP BY c.rowid, c.label, c.color, c.position";
+		// Orders the *cap*, not the display: when there are more tags than the
+		// limit allows, the most used are the ones worth keeping. Display order
+		// is Dolibarr's category Position, applied in sortFacets().
+		$sql .= " ORDER BY cnt DESC, c.label ASC";
+		$sql .= $this->db->plimit($limit, 0);
+
+		$out = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return array();
+		}
+		while ($o = $this->db->fetch_object($resql)) {
+			$out[(int) $o->rowid] = array(
+				'label' => (string) $o->label,
+				'color' => (string) $o->color,
+				'position' => (int) $o->position,
+				'count' => (int) $o->cnt,
+			);
+		}
+		$this->db->free($resql);
+
+		return $out;
+	}
+
+	/**
+	 * Order facets for display, following Dolibarr's own category Position.
+	 *
+	 * This adds no ordering concept of its own: position is the native
+	 * llx_categorie column (default 0), the same field the folder navigation in
+	 * this class already sorts by. Setting it in Dolibarr is what makes a size
+	 * list read 1/8, 1/4, 1/2 rather than alphabetically, where "1/2 in." would
+	 * come first.
+	 *
+	 * The only thing done here beyond ordering is keeping a group's values
+	 * adjacent, which the facet query cannot express because a facet's group is
+	 * resolved by walking ancestors rather than by a column.
+	 *
+	 * @param  array<int,array<string,mixed>> $facets Facets, by reference
+	 * @return void
+	 */
+	private function sortFacets(&$facets)
+	{
+		usort($facets, function ($a, $b) {
+			$ag = !empty($a['group_id']);
+			$bg = !empty($b['group_id']);
+
+			// Attribute groups first, loose tags after them.
+			if ($ag !== $bg) {
+				return $ag ? -1 : 1;
+			}
+
+			// Keep a group's values together, groups in their own Position order.
+			if ($ag) {
+				if ($a['group_position'] !== $b['group_position']) {
+					return $a['group_position'] - $b['group_position'];
+				}
+				if ($a['group_id'] !== $b['group_id']) {
+					return strcasecmp($a['group_label'], $b['group_label']);
+				}
+			}
+
+			if ($a['position'] !== $b['position']) {
+				return $a['position'] - $b['position'];
+			}
+
+			return strcasecmp($a['label'], $b['label']);
+		});
 	}
 
 	/**

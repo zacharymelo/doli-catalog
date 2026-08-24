@@ -896,23 +896,49 @@ body.dolicatalog-open .ui-autocomplete {
 /* ------------------------------------------------- cross-cutting tag facets */
 
 .dolicatalog-facets {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	flex-wrap: wrap;
-	/* Sits between the folder grid and the item grid, so it needs breathing
-	   room above rather than the tighter spacing of a toolbar. */
-	margin: 18px 0 2px;
+	padding: 12px 14px;
+	margin: 10px 0 4px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
 }
 
 .dolicatalog-facets:empty { display: none; }
 
-.dcb-facet-label {
+.dcb-facet-heading {
 	font-size: 10px;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: 0.06em;
 	color: #94a3b8;
-	margin-right: 2px;
+	margin-bottom: 8px;
+}
+
+/* One attribute per row: its name in a fixed column, its values beside it, so
+   the names line up and the eye can scan down them. */
+.dcb-facet-group {
+	display: grid;
+	grid-template-columns: 130px 1fr;
+	gap: 8px 12px;
+	align-items: baseline;
+	padding: 5px 0;
+	border-top: 1px solid #eef2f7;
+}
+
+.dcb-facet-group:first-of-type { border-top: none; }
+
+.dcb-facet-group-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: #334155;
+	text-align: right;
+	line-height: 1.9;
+}
+
+.dcb-facet-values {
+	display: flex;
+	gap: 6px;
+	flex-wrap: wrap;
+	align-items: center;
 }
 
 .dcb-facet {
@@ -950,6 +976,17 @@ body.dolicatalog-open .ui-autocomplete {
 	color: #fff;
 }
 
+.dcb-facet-more {
+	background: none;
+	border: none;
+	color: #2563eb;
+	cursor: pointer;
+	font-size: 11px;
+	text-decoration: underline;
+	padding: 2px 4px;
+	white-space: nowrap;
+}
+
 .dcb-facet-clear {
 	background: none;
 	border: none;
@@ -957,5 +994,91 @@ body.dolicatalog-open .ui-autocomplete {
 	cursor: pointer;
 	font-size: 11px;
 	text-decoration: underline;
-	padding: 2px 4px;
+	padding: 8px 0 0 142px;
 }
+
+@media (max-width: 700px) {
+	.dcb-facet-group { grid-template-columns: 1fr; gap: 4px; }
+	.dcb-facet-group-label { text-align: left; line-height: 1.4; }
+	.dcb-facet-clear { padding-left: 0; }
+}
+
+
+/* All / Any switch, shown on an attribute only once two of its values are
+   selected - with one, the two readings describe the same set. */
+
+.dcb-facet-mode {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	background: #fff;
+	border: 1px dashed #cbd5e1;
+	border-radius: 999px;
+	padding: 2px 10px;
+	margin-left: 4px;
+	font-size: 11px;
+	color: #64748b;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.dcb-facet-mode:hover { border-color: #94a3b8; color: #334155; }
+
+.dcb-facet-mode-on {
+	font-weight: 700;
+	color: #334155;
+}
+
+.dcb-facet-mode.any {
+	border-style: solid;
+	border-color: #f59e0b;
+	background: #fffbeb;
+}
+
+.dcb-facet-mode.any .dcb-facet-mode-on { color: #b45309; }
+
+/* Collapsible refine panel. Folding it away is worth remembering, so the state
+   lives in localStorage rather than resetting on every filter click. */
+
+.dcb-facet-heading {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	width: 100%;
+	background: none;
+	border: none;
+	padding: 0 0 8px;
+	margin: 0;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #94a3b8;
+	cursor: pointer;
+	text-align: left;
+}
+
+.dcb-facet-heading:hover { color: #64748b; }
+
+.dcb-facet-caret {
+	font-size: 9px;
+	line-height: 1;
+	color: #94a3b8;
+}
+
+.dcb-facet-heading-text { flex: 0 0 auto; }
+
+/* Says the panel is still filtering while folded, so a short result list is
+   never mistaken for an empty catalogue. */
+.dcb-facet-active {
+	background: #2563eb;
+	color: #fff;
+	border-radius: 999px;
+	padding: 1px 8px;
+	font-size: 10px;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.dolicatalog-facets.collapsed { padding-bottom: 4px; }
+.dolicatalog-facets.collapsed .dcb-facet-heading { padding-bottom: 0; }
+.dolicatalog-facets.collapsed .dcb-facet-body { display: none; }

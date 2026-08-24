@@ -14,6 +14,72 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.6.0] - 2026-08-24
+
+### Added
+
+- **Tags group under the attribute that names them.** Dolibarr categories double
+  as tags, but a flat list cannot say what a value *means* — "Brass" and
+  "1/4 in." look like the same kind of thing. Nesting values under a category
+  that names the attribute supplies that meaning, and the refine panel now reads
+  the tree to group them:
+
+  ```
+  Thread Type   [BSP] [NPT]
+  Thread Size   [1/8 in.] [1/4 in.] [1/2 in.]
+  Material      [Black Iron] [Brass]
+  ```
+
+  A new setting, **Attribute roots**, names the categories whose children are
+  attribute names. A value's group is the ancestor whose parent is such a root —
+  not its immediate parent, which differs as soon as an attribute has depth of
+  its own. Categories outside those roots keep working as loose tags, and
+  leaving the setting empty preserves the previous flat list.
+
+  Display order is Dolibarr's own category Position on both the attribute and
+  its values; nothing new is introduced. That matters for real values, since
+  alphabetically "1/2 in." sorts before "1/4 in." before "1/8 in.".
+
+- **An All / Any switch per attribute.** Attributes always narrow each other, but
+  within one attribute both readings are useful once a product can carry two
+  values: a reducer tagged `1/4 in.` and `1/2 in.` means selecting both sizes can
+  sensibly return just that reducer, or everything in either size.
+
+  The switch defaults to **All** and appears only once two of that attribute's
+  values are selected, since with one value the two readings describe the same
+  set. It is per attribute, so Thread Size can widen while Material keeps
+  narrowing.
+
+  Counts needed care. They normally reflect every active filter, so the number
+  beside a value is what remains after adding it — but that is wrong for an
+  attribute set to Any: counting its values against its own selection leaves
+  every unselected one at zero, they drop out as dead ends, and a third value
+  could never be added. Those are recounted with only that attribute's selection
+  lifted.
+
+- **The refine panel folds away.** Its heading is now a control. The choice is
+  remembered between page loads, because filtering reloads the list and a panel
+  that unfolds on every click is not folded away in any useful sense. Collapsed,
+  the heading still reports how many filters are active, so a narrowed list is
+  never mistaken for a small catalogue.
+
+### Fixed
+
+- **`build.sh` produced nothing for a suffixed version.** Its version pattern
+  matched only digits and dots, and under `set -e` the non-matching `grep`
+  aborted before the script's own check could report why — a silent no-op that
+  looked like success.
+
+- **Pre-release zips could not be uploaded.** Dolibarr validates the package
+  filename and derives the module name by stripping the version, so the segment
+  before `.zip` must be digits and dots only; a `-dev` suffix was refused
+  outright. The zip is now named with the numeric part while the descriptor
+  keeps the full version, and the build says when it has reduced one.
+
+- **`MAX_TREE_DEPTH` was undefined in `DoliCatalogBrowser`.** The depth guard was
+  a bare `64` repeated across three tree walks; a fourth referenced a constant
+  that existed only in the sibling module. Now defined once and used in all four.
+
 ## [1.5.2] - 2026-08-24
 
 ### Changed
@@ -314,6 +380,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.6.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.6.0
 [1.5.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.2
 [1.5.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.1
 [1.5.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.0
