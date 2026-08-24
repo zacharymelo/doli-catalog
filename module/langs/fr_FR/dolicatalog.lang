@@ -122,3 +122,4 @@ DoliCatalogMatchAll = Tous
 DoliCatalogMatchAny = Au moins un
 DoliCatalogMatchAllHint = Affiche les articles correspondant a toutes les valeurs. Cliquer pour n'en exiger qu'une.
 DoliCatalogMatchAnyHint = Affiche les articles correspondant a au moins une valeur. Cliquer pour les exiger toutes.
+DoliCatalogFiltersActive = actifs

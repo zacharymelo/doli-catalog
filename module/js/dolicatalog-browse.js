@@ -191,6 +191,41 @@
 	 * @param  {Array} facets Facet rows from the endpoint
 	 * @return {Node|null}    The chip row, or null when there is nothing to show
 	 */
+	/** Where the collapsed/expanded choice is remembered between page loads. */
+	var FACETS_COLLAPSED_KEY = 'dolicatalog.facets.collapsed';
+
+	/**
+	 * Whether the refine panel is collapsed.
+	 *
+	 * Kept in localStorage rather than page state: filtering reloads the list,
+	 * and someone who has folded the panel away does not want it unfolding
+	 * again on every click.
+	 *
+	 * @return {boolean} True when collapsed
+	 */
+	function facetsCollapsed() {
+		try {
+			return window.localStorage.getItem(FACETS_COLLAPSED_KEY) === '1';
+		} catch (e) {
+			// Private browsing and similar can refuse storage; default to open.
+			return false;
+		}
+	}
+
+	/**
+	 * Remember the collapsed choice.
+	 *
+	 * @param  {boolean} collapsed Desired state
+	 * @return {void}
+	 */
+	function setFacetsCollapsed(collapsed) {
+		try {
+			window.localStorage.setItem(FACETS_COLLAPSED_KEY, collapsed ? '1' : '0');
+		} catch (e) {
+			// Not being able to remember it is not worth failing the click over.
+		}
+	}
+
 	/** How many values a group shows before collapsing the rest behind a toggle. */
 	var FACET_VISIBLE = 12;
 
@@ -294,8 +329,34 @@
 	function renderFacets(facets) {
 		if (!facets || !facets.length) { return null; }
 
-		var host = make('div', 'dolicatalog-facets');
-		host.appendChild(make('div', 'dcb-facet-heading', label('DoliCatalogRefineBy', 'Refine by')));
+		var collapsed = facetsCollapsed();
+		var host = make('div', 'dolicatalog-facets' + (collapsed ? ' collapsed' : ''));
+
+		var header = make('button', 'dcb-facet-heading');
+		header.type = 'button';
+		header.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+		header.appendChild(make('span', 'dcb-facet-caret', collapsed ? '\u25B8' : '\u25BE'));
+		header.appendChild(make('span', 'dcb-facet-heading-text', label('DoliCatalogRefineBy', 'Refine by')));
+
+		// Folded away, the panel must still say that it is filtering something,
+		// or a short result list looks like an empty catalogue.
+		if (collapsed && state.facets.length) {
+			header.appendChild(make('span', 'dcb-facet-active',
+				state.facets.length + ' ' + label('DoliCatalogFiltersActive', 'active')));
+		}
+
+		var body = make('div', 'dcb-facet-body');
+
+		header.addEventListener('click', function () {
+			var next = !host.classList.contains('collapsed');
+			setFacetsCollapsed(next);
+			// Re-render rather than toggling a class, so the active-count badge
+			// and caret are rebuilt from one place.
+			load();
+		});
+
+		host.appendChild(header);
+		host.appendChild(body);
 
 		// Already ordered by the server; walking in sequence keeps a group's
 		// values together without re-sorting them here.
@@ -304,7 +365,7 @@
 		var bucket = [];
 
 		function flush() {
-			if (bucket.length) { host.appendChild(facetGroup(currentName, bucket)); }
+			if (bucket.length) { body.appendChild(facetGroup(currentName, bucket)); }
 			bucket = [];
 		}
 
@@ -326,7 +387,7 @@
 				state.offset = 0;
 				load();
 			});
-			host.appendChild(clearBtn);
+			body.appendChild(clearBtn);
 		}
 
 		return host;

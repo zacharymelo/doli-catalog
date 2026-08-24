@@ -122,3 +122,4 @@ DoliCatalogMatchAll = All
 DoliCatalogMatchAny = Any
 DoliCatalogMatchAllHint = Showing items matching all selected values. Click to allow any.
 DoliCatalogMatchAnyHint = Showing items matching any selected value. Click to require all.
+DoliCatalogFiltersActive = active
