@@ -28,6 +28,9 @@
 		search: '',
 		type: -1,
 		warehouse: 0,
+		// Cross-cutting tag ids. Several OR with each other and AND with the
+		// category, search and type filters.
+		facets: [],
 		offset: 0,
 		breadcrumb: [],
 		seq: 0
@@ -77,6 +80,7 @@
 		q.set('type', state.type);
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
+		state.facets.forEach(function (id) { q.append('facets[]', id); });
 
 		if (state.view === 'search') {
 			q.set('action', 'search');
@@ -120,6 +124,7 @@
 		nav.appendChild(crumb(label('DoliCatalogRoot', 'Catalog'), function () {
 			state.view = 'browse';
 			state.category = 0;
+			state.facets = [];
 			state.offset = 0;
 			el('dcb-search').value = '';
 			state.search = '';
@@ -138,6 +143,7 @@
 				nav.appendChild(crumb(item.label, function () {
 					state.view = 'browse';
 					state.category = item.id;
+					state.facets = [];
 					state.offset = 0;
 					load();
 				}, i === state.breadcrumb.length - 1));
@@ -159,12 +165,50 @@
 		b.addEventListener('click', function () {
 			state.view = (state.view === view) ? 'browse' : view;
 			if (state.view === 'browse') { state.category = 0; }
+			state.facets = [];
 			state.offset = 0;
 			el('dcb-search').value = '';
 			state.search = '';
 			load();
 		});
 		return b;
+	}
+
+	function renderFacets(facets) {
+		var host = el('dcb-facets');
+		clear(host);
+
+		if (!facets || !facets.length) { return; }
+
+		host.appendChild(make('span', 'dcb-facet-label', label('DoliCatalogRefineBy', 'Refine by tag')));
+
+		facets.forEach(function (f) {
+			var chip = make('button', 'dcb-facet' + (f.selected ? ' on' : ''));
+			chip.type = 'button';
+			if (f.color) { chip.style.borderLeft = '3px solid #' + f.color; }
+			chip.appendChild(document.createTextNode(f.label));
+			chip.appendChild(make('span', 'dcb-facet-count', f.count));
+
+			chip.addEventListener('click', function () {
+				var i = state.facets.indexOf(f.id);
+				if (i === -1) { state.facets.push(f.id); } else { state.facets.splice(i, 1); }
+				state.offset = 0;
+				load();
+			});
+
+			host.appendChild(chip);
+		});
+
+		if (state.facets.length) {
+			var clearBtn = make('button', 'dcb-facet-clear', label('DoliCatalogClearTags', 'Clear tags'));
+			clearBtn.type = 'button';
+			clearBtn.addEventListener('click', function () {
+				state.facets = [];
+				state.offset = 0;
+				load();
+			});
+			host.appendChild(clearBtn);
+		}
 	}
 
 	function renderFolders(cats) {
@@ -189,6 +233,7 @@
 			card.addEventListener('click', function () {
 				state.view = 'browse';
 				state.category = c.id;
+				state.facets = [];
 				state.offset = 0;
 				el('dcb-search').value = '';
 				state.search = '';
@@ -360,6 +405,7 @@
 
 			state.breadcrumb = data.breadcrumb || [];
 			renderBreadcrumb();
+			renderFacets(data.facets);
 
 			var cats = data.categories || [];
 			var prods = data.products || [];
@@ -395,6 +441,7 @@
 			// excluded everything outside the folder they happened to be in
 			// would be the opposite of useful.
 			state.category = 0;
+			state.facets = [];
 			state.offset = 0;
 			load();
 		}, 250));

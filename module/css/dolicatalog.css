@@ -892,3 +892,68 @@ body.dolicatalog-open .ui-autocomplete {
 	text-decoration: underline;
 	padding: 4px 2px 0;
 }
+
+/* ------------------------------------------------- cross-cutting tag facets */
+
+.dolicatalog-facets {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+	padding: 10px 0 2px;
+}
+
+.dolicatalog-facets:empty { display: none; }
+
+.dcb-facet-label {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #94a3b8;
+	margin-right: 2px;
+}
+
+.dcb-facet {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: #fff;
+	border: 1px solid #e2e8f0;
+	border-radius: 999px;
+	padding: 3px 11px;
+	font-size: 12px;
+	color: #334155;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.dcb-facet:hover { border-color: #94a3b8; }
+
+.dcb-facet.on {
+	background: #2563eb;
+	border-color: #2563eb;
+	color: #fff;
+}
+
+.dcb-facet-count {
+	background: #f1f5f9;
+	color: #475569;
+	border-radius: 999px;
+	padding: 0 6px;
+	font-size: 10px;
+}
+
+.dcb-facet.on .dcb-facet-count {
+	background: rgba(255, 255, 255, 0.25);
+	color: #fff;
+}
+
+.dcb-facet-clear {
+	background: none;
+	border: none;
+	color: #b91c1c;
+	cursor: pointer;
+	font-size: 11px;
+	text-decoration: underline;
+	padding: 2px 4px;
+}

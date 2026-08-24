@@ -62,6 +62,11 @@ onboarding staff who know the categories but not the product codes.
 Searching from this page always searches the whole catalogue, even while inside
 a folder.
 
+Inside a category, the tags its products also carry appear as chips with counts.
+Selecting them narrows the list, and **selecting several returns only products
+carrying all of them**. Counts show what you would be left with after adding a
+tag, so a tag that would empty the list is not offered.
+
 ## Where it appears
 
 | Document | Hook context | Catalog mode |

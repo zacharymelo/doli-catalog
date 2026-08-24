@@ -14,6 +14,38 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.5.0] - 2026-08-24
+
+### Added
+
+- **Tag filtering inside a category on the catalogue page.** Dolibarr categories
+  double as tags, so a product in a broad category usually also carries
+  cross-cutting ones — a range, a fitting, a status. Opening a category now
+  shows those tags as chips with counts, and selecting them narrows the list
+  without leaving the category.
+
+  **Tags narrow together.** Picking two returns the products carrying *both*,
+  not either. Tags also AND with the search box and the type filter.
+
+  Counts reflect the current selection, so the number beside a tag is exactly
+  what you are left with after adding it — a tag that would empty the list drops
+  out rather than sitting there as a trap. Selected tags always stay visible so
+  they can be switched off, even if they would otherwise fall outside the list.
+
+  Tags belonging to the category you are already in are not offered, since the
+  folders are the navigation and filtering by them would do nothing. The
+  selection resets when you change category, search, or switch to
+  favourites/recents, because it describes a set that no longer exists.
+
+### Changed
+
+- `listProducts()` and the new `getFacets()` now share one filter builder. Facet
+  counts are only trustworthy if they describe exactly the set the listing
+  shows, and two hand-maintained copies of the same conditions would eventually
+  disagree. The supplier restriction moved from a JOIN to an `EXISTS` as part of
+  this, so the filtering condition can be reused without dragging the price
+  column with it.
+
 ## [1.4.1] - 2026-08-23
 
 ### Changed
@@ -255,6 +287,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.5.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.0
 [1.4.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.1
 [1.4.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.0
 [1.3.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.3.2

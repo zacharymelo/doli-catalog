@@ -84,9 +84,14 @@ $catalog = new DoliCatalogBrowser($db);
 
 $offset = GETPOSTINT('offset');
 
+// Cross-cutting tag selection. Several ids OR with each other and AND with
+// everything else: "inside this category, tagged A or B".
+$facets = GETPOST('facets', 'array:int');
+
 $filters = array(
 	'mode' => $mode,
 	'offset' => $offset,
+	'facets' => is_array($facets) ? $facets : array(),
 	'type' => $type,
 	'warehouse' => $warehouse,
 	'supplier' => $supplier,
@@ -110,9 +115,13 @@ switch ($action) {
 			$decorated[] = $cat;
 		}
 
+		// One filter array drives both the listing and the facets, so a facet's
+		// count can never describe a different set than the list it filters.
+		$scoped = $filters + array('category' => $category, 'deep' => 0);
+
 		$products = array('rows' => array(), 'truncated' => false);
 		if ($category > 0) {
-			$products = $catalog->listProducts($filters + array('category' => $category, 'deep' => 0));
+			$products = $catalog->listProducts($scoped);
 		}
 
 		dolicatalog_json(array(
@@ -122,6 +131,9 @@ switch ($action) {
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
 			'offset' => $offset,
+			// Only meaningful once inside a category; at the root the folders
+			// are the navigation and a tag list would just be the whole tree.
+			'facets' => $category > 0 ? $catalog->getFacets($scoped) : array(),
 		));
 		break;
 
@@ -153,6 +165,7 @@ switch ($action) {
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
 			'offset' => $offset,
+			'facets' => $catalog->getFacets($searchFilters),
 			'scoped' => $category > 0 ? 1 : 0,
 		));
 		break;
@@ -170,6 +183,7 @@ switch ($action) {
 			'products' => $products['rows'],
 			'truncated' => $products['truncated'],
 			'offset' => $offset,
+			'facets' => empty($ids) ? array() : $catalog->getFacets($filters + array('ids' => $ids)),
 		));
 		break;
 

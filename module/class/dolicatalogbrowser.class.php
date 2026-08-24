@@ -450,6 +450,225 @@ class DoliCatalogBrowser
 	}
 
 	/**
+	 * The JOIN and WHERE that define which products a set of filters selects.
+	 *
+	 * Shared by listProducts() and getFacets() so the counts beside a facet can
+	 * never disagree with the list it filters. Display-only joins (warehouse
+	 * stock, supplier price column) stay in listProducts; only conditions that
+	 * change *which* rows match belong here.
+	 *
+	 * @param  array<string,mixed> $filters Filters
+	 * @return array{joins:string,where:string,catIds:int[]} SQL fragments
+	 */
+	private function buildProductFilterSql($filters)
+	{
+		$mode = self::normaliseMode(isset($filters['mode']) ? $filters['mode'] : '');
+		$supplier = isset($filters['supplier']) ? (int) $filters['supplier'] : 0;
+
+		$joins = '';
+		$where = " WHERE p.entity IN (".getEntity('product').")";
+		$where .= $this->saleStatusClause($mode);
+
+		// Category scoping.
+		$catIds = array();
+		if (!empty($filters['category'])) {
+			$catId = (int) $filters['category'];
+			$catIds = !empty($filters['deep']) ? $this->getDescendantIds($catId) : array($catId);
+		}
+		if (!empty($catIds)) {
+			$joins .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cp ON cp.fk_product = p.rowid";
+			$where .= " AND cp.fk_categorie IN (".$this->db->sanitize(implode(',', $catIds)).")";
+		}
+
+		// Supplier restriction as EXISTS rather than a join, so the same condition
+		// can be reused without dragging the price column along with it.
+		if ($supplier > 0) {
+			$where .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."product_fournisseur_price as pfx";
+			$where .= " WHERE pfx.fk_product = p.rowid AND pfx.fk_soc = ".$supplier.")";
+		}
+
+		if (isset($filters['type']) && $filters['type'] >= 0) {
+			$where .= " AND p.fk_product_type = ".((int) $filters['type']);
+		}
+
+		// Explicit id list (favourites / recents rehydration).
+		if (!empty($filters['ids']) && is_array($filters['ids'])) {
+			$clean = array();
+			foreach ($filters['ids'] as $one) {
+				$one = (int) $one;
+				if ($one > 0) {
+					$clean[] = $one;
+				}
+			}
+			if (empty($clean)) {
+				$where .= " AND 1 = 0";
+			} else {
+				$where .= " AND p.rowid IN (".$this->db->sanitize(implode(',', $clean)).")";
+			}
+		}
+
+		// Cross-cutting tag filter, ANDed: "inside this category, tagged A *and*
+		// B". One EXISTS per tag rather than a single IN - an IN would match a
+		// product carrying any one of them, which is a different question.
+		$facets = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
+		foreach ($facets as $i => $facetId) {
+			$alias = 'cpf'.((int) $i);
+			$where .= " AND EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as ".$alias;
+			$where .= " WHERE ".$alias.".fk_product = p.rowid";
+			$where .= " AND ".$alias.".fk_categorie = ".((int) $facetId).")";
+		}
+
+		// Free-text search across a product's own text, plus the names of the
+		// categories it belongs to. The product-text clauses are the original
+		// behaviour and stay first; the category clause only ever widens the match.
+		$search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+		if ($search !== '') {
+			$needle = $this->db->escape($this->db->escapeforlike($search));
+			$where .= " AND (p.ref LIKE '%".$needle."%'";
+			$where .= " OR p.label LIKE '%".$needle."%'";
+			$where .= " OR p.description LIKE '%".$needle."%'";
+			$where .= " OR p.barcode LIKE '%".$needle."%'";
+
+			$labelCatIds = $this->findCategoryIdsByLabel($search);
+			if (!empty($labelCatIds)) {
+				$where .= " OR EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as cpm";
+				$where .= " WHERE cpm.fk_product = p.rowid";
+				$where .= " AND cpm.fk_categorie IN (".$this->db->sanitize(implode(',', $labelCatIds)).") )";
+			}
+
+			$where .= ")";
+		}
+
+		return array('joins' => $joins, 'where' => $where, 'catIds' => $catIds);
+	}
+
+	/**
+	 * Normalise a facet selection to positive integers.
+	 *
+	 * @param  mixed $facets Raw selection
+	 * @return int[]         Category ids
+	 */
+	private function cleanFacetIds($facets)
+	{
+		if (empty($facets) || !is_array($facets)) {
+			return array();
+		}
+
+		$out = array();
+		foreach ($facets as $one) {
+			$one = (int) $one;
+			if ($one > 0) {
+				$out[$one] = $one;
+			}
+		}
+
+		return array_values($out);
+	}
+
+	/**
+	 * Tags carried by the products the current filters select.
+	 *
+	 * Dolibarr categories double as tags, so a product sitting in a broad
+	 * category usually also carries cross-cutting ones - a range, a fitting, a
+	 * status. This surfaces those with counts, so a broad category can be
+	 * narrowed without leaving it.
+	 *
+	 * Selected tags narrow together: picking two returns products carrying both.
+	 *
+	 * Categories that define the current position are excluded: the current
+	 * branch is already navigation, and offering it as a filter would do nothing.
+	 * Currently selected facets are always returned, even at zero, so a selected
+	 * chip never disappears and strand the user with no way to switch it off.
+	 *
+	 * @param  array<string,mixed> $filters Same filters as listProducts()
+	 * @param  int                 $limit   Maximum facets returned
+	 * @return array<int,array<string,mixed>> Facets, most common first
+	 */
+	public function getFacets($filters = array(), $limit = 40)
+	{
+		$limit = max(1, min((int) $limit, 200));
+
+		// Counts include the current tag selection, because tags AND together:
+		// the number beside an unselected tag is what you would be left with
+		// after adding it, and a zero says plainly that it is a dead end. (Under
+		// OR semantics the selection would have to be excluded here instead, so
+		// this line follows directly from the choice made in
+		// buildProductFilterSql().)
+		$scope = $this->buildProductFilterSql($filters);
+
+		$exclude = array();
+		if (!empty($scope['catIds'])) {
+			$exclude = $scope['catIds'];
+		}
+
+		$sql = "SELECT c.rowid, c.label, c.color, COUNT(DISTINCT p.rowid) as cnt";
+		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
+		$sql .= $scope['joins'];
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cpx ON cpx.fk_product = p.rowid";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie as c ON c.rowid = cpx.fk_categorie";
+		$sql .= $scope['where'];
+		$sql .= " AND c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+		if (!empty($exclude)) {
+			$sql .= " AND c.rowid NOT IN (".$this->db->sanitize(implode(',', $exclude)).")";
+		}
+		$sql .= " GROUP BY c.rowid, c.label, c.color";
+		$sql .= " ORDER BY cnt DESC, c.label ASC";
+		$sql .= $this->db->plimit($limit, 0);
+
+		$selected = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
+
+		$out = array();
+		$seen = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return array();
+		}
+		while ($o = $this->db->fetch_object($resql)) {
+			$id = (int) $o->rowid;
+			$seen[$id] = true;
+			$out[] = array(
+				'id' => $id,
+				'label' => (string) $o->label,
+				'color' => (string) $o->color,
+				'count' => (int) $o->cnt,
+				'selected' => in_array($id, $selected, true) ? 1 : 0,
+			);
+		}
+		$this->db->free($resql);
+
+		// A selected facet pushed past the limit must still render, or it cannot
+		// be unselected.
+		$missing = array();
+		foreach ($selected as $id) {
+			if (!isset($seen[$id])) {
+				$missing[] = $id;
+			}
+		}
+		if (!empty($missing)) {
+			$sql = "SELECT rowid, label, color FROM ".MAIN_DB_PREFIX."categorie";
+			$sql .= " WHERE rowid IN (".$this->db->sanitize(implode(',', $missing)).")";
+			$sql .= " AND entity IN (".getEntity('category').")";
+			$resql = $this->db->query($sql);
+			if ($resql) {
+				while ($o = $this->db->fetch_object($resql)) {
+					array_unshift($out, array(
+						'id' => (int) $o->rowid,
+						'label' => (string) $o->label,
+						'color' => (string) $o->color,
+						'count' => 0,
+						'selected' => 1,
+					));
+				}
+				$this->db->free($resql);
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * List products for the browser.
 	 *
 	 * @param array{
@@ -479,6 +698,8 @@ class DoliCatalogBrowser
 		$supplier = isset($filters['supplier']) ? (int) $filters['supplier'] : 0;
 		$userid = isset($filters['userid']) ? (int) $filters['userid'] : (is_object($user) ? (int) $user->id : 0);
 
+		$scope = $this->buildProductFilterSql($filters);
+
 		$sql = "SELECT DISTINCT p.rowid, p.ref, p.label, p.description, p.barcode,";
 		$sql .= " p.price, p.price_ttc, p.price_base_type, p.tva_tx, p.fk_product_type,";
 		$sql .= " p.duration, p.fk_unit, p.stock, p.tosell, p.tobuy, p.entity, p.cost_price";
@@ -492,24 +713,16 @@ class DoliCatalogBrowser
 		}
 
 		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
+		$sql .= $scope['joins'];
 
-		// Category scoping.
-		$catIds = array();
-		if (!empty($filters['category'])) {
-			$catId = (int) $filters['category'];
-			$deep = !empty($filters['deep']);
-			$catIds = $deep ? $this->getDescendantIds($catId) : array($catId);
-		}
-		if (!empty($catIds)) {
-			$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cp ON cp.fk_product = p.rowid";
-		}
-
+		// Display-only joins. Neither may narrow the result set: the supplier
+		// restriction lives in the shared filter as an EXISTS, so that facet
+		// counts and this listing always agree on which products match.
 		if ($warehouse > 0) {
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_stock as ps ON ps.fk_product = p.rowid AND ps.fk_entrepot = ".$warehouse;
 		}
 
 		if ($mode === 'buy') {
-			// One grouped subquery rather than a per-row price lookup.
 			$sub = "SELECT fk_product, MIN(unitprice) as buyprice";
 			$sub .= " FROM ".MAIN_DB_PREFIX."product_fournisseur_price";
 			$sub .= " WHERE entity IN (".getEntity('product').")";
@@ -518,61 +731,10 @@ class DoliCatalogBrowser
 			}
 			$sub .= " GROUP BY fk_product";
 
-			// A supplier filter restricts the rows; without it the price is just decoration.
-			$sql .= ($supplier > 0 ? " INNER JOIN (" : " LEFT JOIN (").$sub.") as pfpmin ON pfpmin.fk_product = p.rowid";
-		} elseif ($supplier > 0) {
-			$sql .= " INNER JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON pfp.fk_product = p.rowid AND pfp.fk_soc = ".$supplier;
+			$sql .= " LEFT JOIN (".$sub.") as pfpmin ON pfpmin.fk_product = p.rowid";
 		}
 
-		$sql .= " WHERE p.entity IN (".getEntity('product').")";
-		$sql .= $this->saleStatusClause($mode);
-
-		if (!empty($catIds)) {
-			$sql .= " AND cp.fk_categorie IN (".$this->db->sanitize(implode(',', $catIds)).")";
-		}
-
-		if (isset($filters['type']) && $filters['type'] >= 0) {
-			$sql .= " AND p.fk_product_type = ".((int) $filters['type']);
-		}
-
-		// Explicit id list (favourites / recents rehydration).
-		if (!empty($filters['ids']) && is_array($filters['ids'])) {
-			$clean = array();
-			foreach ($filters['ids'] as $one) {
-				$one = (int) $one;
-				if ($one > 0) {
-					$clean[] = $one;
-				}
-			}
-			if (empty($clean)) {
-				return array('rows' => array(), 'truncated' => false, 'total' => 0);
-			}
-			$sql .= " AND p.rowid IN (".$this->db->sanitize(implode(',', $clean)).")";
-		}
-
-		// Free-text search across a product's own text, plus the names of the
-		// categories it belongs to. The product-text clauses are the original
-		// behaviour and stay first; the category clause only ever widens the match.
-		$search = isset($filters['search']) ? trim((string) $filters['search']) : '';
-		if ($search !== '') {
-			$needle = $this->db->escape($this->db->escapeforlike($search));
-			$sql .= " AND (p.ref LIKE '%".$needle."%'";
-			$sql .= " OR p.label LIKE '%".$needle."%'";
-			$sql .= " OR p.description LIKE '%".$needle."%'";
-			$sql .= " OR p.barcode LIKE '%".$needle."%'";
-
-			// Also match on the name of a category the product sits in, so a
-			// term like "accessories" finds the branch's contents even though
-			// no product's own text contains the word.
-			$labelCatIds = $this->findCategoryIdsByLabel($search);
-			if (!empty($labelCatIds)) {
-				$sql .= " OR EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as cpm";
-				$sql .= " WHERE cpm.fk_product = p.rowid";
-				$sql .= " AND cpm.fk_categorie IN (".$this->db->sanitize(implode(',', $labelCatIds)).") )";
-			}
-
-			$sql .= ")";
-		}
+		$sql .= $scope['where'];
 
 		$sql .= " ORDER BY p.ref ASC";
 		// Fetch one extra row so we can tell the caller the list was cut short.
