@@ -118,3 +118,7 @@ DoliCatalogOtherTags = Other
 DoliCatalogMoreValues = more
 AttributeRoots = Attribute roots
 AttributeRootsDesc = Comma separated category ids whose direct children name an attribute (for example a category called "Attribute" holding Material, Thread Type, Thread Size). Values beneath them are grouped under their attribute name when refining a category, and ordered by each category's own Position. Leave empty to show tags as one flat list.
+DoliCatalogMatchAll = All
+DoliCatalogMatchAny = Any
+DoliCatalogMatchAllHint = Showing items matching all selected values. Click to allow any.
+DoliCatalogMatchAnyHint = Showing items matching any selected value. Click to require all.

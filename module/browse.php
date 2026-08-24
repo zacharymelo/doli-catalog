@@ -112,6 +112,7 @@ $labelKeys = array(
 	'DoliCatalogRecent', 'DoliCatalogOpenProduct', 'DoliCatalogAddFavorite',
 	'DoliCatalogRemoveFavorite', 'DoliCatalogPrevious', 'DoliCatalogNext',
 	'DoliCatalogBrowseEmpty', 'DoliCatalogRefineBy', 'DoliCatalogClearTags', 'DoliCatalogOtherTags', 'DoliCatalogMoreValues',
+	'DoliCatalogMatchAll', 'DoliCatalogMatchAny', 'DoliCatalogMatchAllHint', 'DoliCatalogMatchAnyHint',
 );
 foreach ($labelKeys as $k) {
 	$config['labels'][$k] = $langs->transnoentities($k);

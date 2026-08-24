@@ -1003,3 +1003,36 @@ body.dolicatalog-open .ui-autocomplete {
 	.dcb-facet-clear { padding-left: 0; }
 }
 
+
+/* All / Any switch, shown on an attribute only once two of its values are
+   selected - with one, the two readings describe the same set. */
+
+.dcb-facet-mode {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	background: #fff;
+	border: 1px dashed #cbd5e1;
+	border-radius: 999px;
+	padding: 2px 10px;
+	margin-left: 4px;
+	font-size: 11px;
+	color: #64748b;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.dcb-facet-mode:hover { border-color: #94a3b8; color: #334155; }
+
+.dcb-facet-mode-on {
+	font-weight: 700;
+	color: #334155;
+}
+
+.dcb-facet-mode.any {
+	border-style: solid;
+	border-color: #f59e0b;
+	background: #fffbeb;
+}
+
+.dcb-facet-mode.any .dcb-facet-mode-on { color: #b45309; }

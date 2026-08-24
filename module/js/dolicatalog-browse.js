@@ -31,6 +31,9 @@
 		// Cross-cutting tag ids. Several OR with each other and AND with the
 		// category, search and type filters.
 		facets: [],
+		// Attribute ids switched from "all" to "any". Per attribute, so one can
+		// widen while the others keep narrowing.
+		facetsAny: [],
 		offset: 0,
 		breadcrumb: [],
 		seq: 0
@@ -81,6 +84,7 @@
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
 		state.facets.forEach(function (id) { q.append('facets[]', id); });
+		state.facetsAny.forEach(function (id) { q.append('facetsany[]', id); });
 
 		if (state.view === 'search') {
 			q.set('action', 'search');
@@ -125,6 +129,7 @@
 			state.view = 'browse';
 			state.category = 0;
 			state.facets = [];
+			state.facetsAny = [];
 			state.offset = 0;
 			el('dcb-search').value = '';
 			state.search = '';
@@ -144,6 +149,7 @@
 					state.view = 'browse';
 					state.category = item.id;
 					state.facets = [];
+				state.facetsAny = [];
 					state.offset = 0;
 					load();
 				}, i === state.breadcrumb.length - 1));
@@ -166,6 +172,7 @@
 			state.view = (state.view === view) ? 'browse' : view;
 			if (state.view === 'browse') { state.category = 0; }
 			state.facets = [];
+			state.facetsAny = [];
 			state.offset = 0;
 			el('dcb-search').value = '';
 			state.search = '';
@@ -236,6 +243,34 @@
 			}
 		});
 
+		var modeToggle = null;
+
+		// Only meaningful once two values of this attribute are selected: with
+		// one, "all" and "any" describe the same set.
+		var groupId = values.length ? (values[0].group_id || 0) : 0;
+		var selectedHere = values.filter(function (f) { return f.selected; }).length;
+
+		if (groupId > 0 && selectedHere > 1) {
+			var isAny = state.facetsAny.indexOf(groupId) !== -1;
+			var toggle = make('button', 'dcb-facet-mode' + (isAny ? ' any' : ''));
+			toggle.type = 'button';
+			toggle.title = isAny
+				? label('DoliCatalogMatchAnyHint', 'Showing items matching any selected value. Click to require all.')
+				: label('DoliCatalogMatchAllHint', 'Showing items matching all selected values. Click to allow any.');
+			toggle.appendChild(make('span', 'dcb-facet-mode-on', isAny
+				? label('DoliCatalogMatchAny', 'Any')
+				: label('DoliCatalogMatchAll', 'All')));
+
+			toggle.addEventListener('click', function () {
+				var i = state.facetsAny.indexOf(groupId);
+				if (i === -1) { state.facetsAny.push(groupId); } else { state.facetsAny.splice(i, 1); }
+				state.offset = 0;
+				load();
+			});
+
+			modeToggle = toggle;
+		}
+
 		head.forEach(function (f) { box.appendChild(facetChip(f)); });
 
 		if (tail.length) {
@@ -247,6 +282,9 @@
 			});
 			box.appendChild(more);
 		}
+
+		// After the values: the switch describes what they do together.
+		if (modeToggle) { box.appendChild(modeToggle); }
 
 		row.appendChild(box);
 
@@ -284,6 +322,7 @@
 			clearBtn.type = 'button';
 			clearBtn.addEventListener('click', function () {
 				state.facets = [];
+				state.facetsAny = [];
 				state.offset = 0;
 				load();
 			});
@@ -316,6 +355,7 @@
 				state.view = 'browse';
 				state.category = c.id;
 				state.facets = [];
+				state.facetsAny = [];
 				state.offset = 0;
 				el('dcb-search').value = '';
 				state.search = '';
@@ -529,6 +569,7 @@
 			// would be the opposite of useful.
 			state.category = 0;
 			state.facets = [];
+			state.facetsAny = [];
 			state.offset = 0;
 			load();
 		}, 250));
