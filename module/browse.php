@@ -84,7 +84,6 @@ if (isModEnabled('stock') && getDolGlobalInt('DOLICATALOG_SHOW_STOCK', 1)) {
 print '</div>';
 
 print '<div class="dolicatalog-browse-crumbs" id="dcb-breadcrumb"></div>';
-print '<div class="dolicatalog-facets" id="dcb-facets"></div>';
 print '<div class="dolicatalog-browse-body" id="dcb-results"></div>';
 print '<div class="dolicatalog-browse-pager" id="dcb-pager"></div>';
 

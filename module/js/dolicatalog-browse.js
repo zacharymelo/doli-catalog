@@ -174,12 +174,20 @@
 		return b;
 	}
 
+	/**
+	 * Tag chips, returned as a node so the caller decides where they sit.
+	 *
+	 * They belong below the category folders: the folders are how you move
+	 * around, and the tags narrow whatever that move landed you on. Placing
+	 * them above read as though they filtered the folders too.
+	 *
+	 * @param  {Array} facets Facet rows from the endpoint
+	 * @return {Node|null}    The chip row, or null when there is nothing to show
+	 */
 	function renderFacets(facets) {
-		var host = el('dcb-facets');
-		clear(host);
+		if (!facets || !facets.length) { return null; }
 
-		if (!facets || !facets.length) { return; }
-
+		var host = make('div', 'dolicatalog-facets');
 		host.appendChild(make('span', 'dcb-facet-label', label('DoliCatalogRefineBy', 'Refine by tag')));
 
 		facets.forEach(function (f) {
@@ -209,6 +217,8 @@
 			});
 			host.appendChild(clearBtn);
 		}
+
+		return host;
 	}
 
 	function renderFolders(cats) {
@@ -405,7 +415,6 @@
 
 			state.breadcrumb = data.breadcrumb || [];
 			renderBreadcrumb();
-			renderFacets(data.facets);
 
 			var cats = data.categories || [];
 			var prods = data.products || [];
@@ -422,6 +431,12 @@
 			}
 
 			if (cats.length) { host.appendChild(renderFolders(cats)); }
+
+			// Between the two on purpose: below the folders you navigate with,
+			// above the items they narrow.
+			var facetRow = renderFacets(data.facets);
+			if (facetRow) { host.appendChild(facetRow); }
+
 			if (prods.length) { host.appendChild(renderProducts(prods)); }
 
 			renderPager(data);

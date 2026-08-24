@@ -14,6 +14,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.5.1] - 2026-08-24
+
+### Changed
+
+- **The tag row moved below the Categories section** on the catalogue page,
+  giving the order: categories, then tags, then items. It previously sat above
+  the categories, which read as though the tags filtered the folders as well as
+  the items — they only ever filtered the items.
+
+  The chips are now built as part of the results flow rather than into a fixed
+  container above it, so their position follows from the render order instead of
+  from page markup.
+
 ## [1.5.0] - 2026-08-24
 
 ### Added
@@ -287,6 +300,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.5.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.1
 [1.5.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.0
 [1.4.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.1
 [1.4.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.4.0

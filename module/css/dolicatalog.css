@@ -900,7 +900,9 @@ body.dolicatalog-open .ui-autocomplete {
 	align-items: center;
 	gap: 6px;
 	flex-wrap: wrap;
-	padding: 10px 0 2px;
+	/* Sits between the folder grid and the item grid, so it needs breathing
+	   room above rather than the tighter spacing of a toolbar. */
+	margin: 18px 0 2px;
 }
 
 .dolicatalog-facets:empty { display: none; }
