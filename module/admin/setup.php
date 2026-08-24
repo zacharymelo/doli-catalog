@@ -50,6 +50,7 @@ if ($action === 'update') {
 		'DOLICATALOG_DEFAULT_QTY',
 		'DOLICATALOG_BUTTON_ICON',
 		'DOLICATALOG_ROOT_CATEGORIES',
+		'DOLICATALOG_ATTRIBUTE_ROOTS',
 	);
 
 	if (!in_array($constname, $allowed, true)) {
@@ -62,7 +63,7 @@ if ($action === 'update') {
 			$constvalue = (string) max(1, min(100, (int) $constvalue));
 		} elseif ($constname === 'DOLICATALOG_DEFAULT_QTY') {
 			$constvalue = (string) max(1, min(9999, (int) $constvalue));
-		} elseif ($constname === 'DOLICATALOG_ROOT_CATEGORIES') {
+		} elseif ($constname === 'DOLICATALOG_ROOT_CATEGORIES' || $constname === 'DOLICATALOG_ATTRIBUTE_ROOTS') {
 			// Keep digits and commas only.
 			$parts = array();
 			foreach (explode(',', $constvalue) as $chunk) {
@@ -147,6 +148,7 @@ dolicatalogPrintInputRow('DOLICATALOG_MAX_RESULTS', 'MaxResults', 'MaxResultsDes
 dolicatalogPrintInputRow('DOLICATALOG_RECENT_COUNT', 'RecentCount', 'RecentCountDesc', 'number', '12', 'min="1" max="100" style="width:70px;"');
 dolicatalogPrintInputRow('DOLICATALOG_DEFAULT_QTY', 'DefaultQty', 'DefaultQtyDesc', 'number', '1', 'min="1" max="9999" style="width:70px;"');
 dolicatalogPrintInputRow('DOLICATALOG_ROOT_CATEGORIES', 'RootCategories', 'RootCategoriesDesc', 'text', '', 'size="24" placeholder="e.g. 3,7,12"');
+dolicatalogPrintInputRow('DOLICATALOG_ATTRIBUTE_ROOTS', 'AttributeRoots', 'AttributeRootsDesc', 'text', '', 'size="24" placeholder="e.g. 15"');
 
 // Debug toggle stays last.
 dolicatalogPrintToggleRow('DOLICATALOG_LIST_TREE', 'ListTree', 'ListTreeDesc');

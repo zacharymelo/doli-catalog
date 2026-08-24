@@ -36,6 +36,14 @@ class DoliCatalogBrowser
 	/** Product-type category discriminator in llx_categorie.type */
 	const CATEGORY_TYPE_PRODUCT = 0;
 
+	/**
+	 * Depth guard for tree walks.
+	 *
+	 * llx_categorie has no constraint preventing a category from becoming its own
+	 * ancestor, so every walk needs a ceiling as well as a seen-set.
+	 */
+	const MAX_TREE_DEPTH = 64;
+
 	/** Hard ceiling on rows returned regardless of configuration */
 	const MAX_ROWS_HARD_LIMIT = 500;
 
@@ -186,7 +194,7 @@ class DoliCatalogBrowser
 		$seen = array();
 		$guard = 0;
 
-		while ($catId > 0 && $guard < 64) {
+		while ($catId > 0 && $guard < self::MAX_TREE_DEPTH) {
 			$guard++;
 			if (isset($seen[$catId])) {
 				break; // cycle in the category tree
@@ -236,7 +244,7 @@ class DoliCatalogBrowser
 		$frontier = array($catId);
 		$guard = 0;
 
-		while (!empty($frontier) && $guard < 64) {
+		while (!empty($frontier) && $guard < self::MAX_TREE_DEPTH) {
 			$guard++;
 
 			$sql = "SELECT c.rowid FROM ".MAIN_DB_PREFIX."categorie as c";
@@ -391,7 +399,7 @@ class DoliCatalogBrowser
 			$guard = 0;
 
 			// Depth-guarded: llx_categorie permits a cycle.
-			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < 64) {
+			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < self::MAX_TREE_DEPTH) {
 				$seen[$cur] = true;
 				$guard++;
 				array_unshift($parts, $nodes[$cur]['label']);
@@ -566,6 +574,100 @@ class DoliCatalogBrowser
 	}
 
 	/**
+	 * The configured roots whose children name an attribute.
+	 *
+	 * @return int[] Category ids
+	 */
+	public function getAttributeRootIds()
+	{
+		$raw = trim(getDolGlobalString('DOLICATALOG_ATTRIBUTE_ROOTS', ''));
+		if ($raw === '') {
+			return array();
+		}
+
+		$out = array();
+		foreach (explode(',', $raw) as $chunk) {
+			$id = (int) trim($chunk);
+			if ($id > 0) {
+				$out[$id] = $id;
+			}
+		}
+
+		return array_values($out);
+	}
+
+	/**
+	 * Map every category beneath an attribute root to the group that names it.
+	 *
+	 * The group is the ancestor whose parent is the attribute root, not the
+	 * category's immediate parent. Those differ as soon as an attribute has any
+	 * depth of its own - a value nested two levels down still belongs to the
+	 * attribute at the top, not to the value above it.
+	 *
+	 * @return array<int,array{id:int,label:string,position:int}> Category id => its group
+	 */
+	public function getAttributeGroupMap()
+	{
+		$roots = $this->getAttributeRootIds();
+		if (empty($roots)) {
+			return array();
+		}
+
+		$sql = "SELECT c.rowid, c.label, c.fk_parent, c.position";
+		$sql .= " FROM ".MAIN_DB_PREFIX."categorie as c";
+		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+
+		$nodes = array();
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			$this->error = $this->db->lasterror();
+			return array();
+		}
+		while ($o = $this->db->fetch_object($resql)) {
+			$nodes[(int) $o->rowid] = array(
+				'label' => (string) $o->label,
+				'parent' => (int) $o->fk_parent,
+				'position' => (int) $o->position,
+			);
+		}
+		$this->db->free($resql);
+
+		$rootLookup = array_flip($roots);
+		$map = array();
+
+		foreach ($nodes as $id => $node) {
+			// A group node names an attribute; it is not itself a value.
+			if (isset($rootLookup[$id]) || isset($rootLookup[$node['parent']])) {
+				continue;
+			}
+
+			$cur = $id;
+			$seen = array();
+			$guard = 0;
+
+			while ($cur > 0 && isset($nodes[$cur]) && !isset($seen[$cur]) && $guard < self::MAX_TREE_DEPTH) {
+				$seen[$cur] = true;
+				$guard++;
+
+				$parent = $nodes[$cur]['parent'];
+				if (isset($rootLookup[$parent])) {
+					$map[$id] = array(
+						'id' => $cur,
+						'label' => $nodes[$cur]['label'],
+						'position' => $nodes[$cur]['position'],
+					);
+					break;
+				}
+
+				$cur = $parent;
+			}
+		}
+
+		return $map;
+	}
+
+	/**
 	 * Tags carried by the products the current filters select.
 	 *
 	 * Dolibarr categories double as tags, so a product sitting in a broad
@@ -612,7 +714,7 @@ class DoliCatalogBrowser
 		}
 		$exclude = array_values(array_unique($exclude));
 
-		$sql = "SELECT c.rowid, c.label, c.color, COUNT(DISTINCT p.rowid) as cnt";
+		$sql = "SELECT c.rowid, c.label, c.color, c.position, COUNT(DISTINCT p.rowid) as cnt";
 		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
 		$sql .= $scope['joins'];
 		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cpx ON cpx.fk_product = p.rowid";
@@ -623,11 +725,15 @@ class DoliCatalogBrowser
 		if (!empty($exclude)) {
 			$sql .= " AND c.rowid NOT IN (".$this->db->sanitize(implode(',', $exclude)).")";
 		}
-		$sql .= " GROUP BY c.rowid, c.label, c.color";
+		$sql .= " GROUP BY c.rowid, c.label, c.color, c.position";
+		// Orders the *cap*, not the display: when there are more tags than the
+		// limit allows, the most used are the ones worth keeping. Display order
+		// is Dolibarr's category Position, applied in sortFacets().
 		$sql .= " ORDER BY cnt DESC, c.label ASC";
 		$sql .= $this->db->plimit($limit, 0);
 
 		$selected = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
+		$groupMap = $this->getAttributeGroupMap();
 
 		$out = array();
 		$seen = array();
@@ -643,8 +749,12 @@ class DoliCatalogBrowser
 				'id' => $id,
 				'label' => (string) $o->label,
 				'color' => (string) $o->color,
+				'position' => (int) $o->position,
 				'count' => (int) $o->cnt,
 				'selected' => in_array($id, $selected, true) ? 1 : 0,
+				'group_id' => isset($groupMap[$id]) ? $groupMap[$id]['id'] : 0,
+				'group_label' => isset($groupMap[$id]) ? $groupMap[$id]['label'] : '',
+				'group_position' => isset($groupMap[$id]) ? $groupMap[$id]['position'] : 0,
 			);
 		}
 		$this->db->free($resql);
@@ -664,19 +774,71 @@ class DoliCatalogBrowser
 			$resql = $this->db->query($sql);
 			if ($resql) {
 				while ($o = $this->db->fetch_object($resql)) {
+					$mid = (int) $o->rowid;
 					array_unshift($out, array(
-						'id' => (int) $o->rowid,
+						'id' => $mid,
 						'label' => (string) $o->label,
 						'color' => (string) $o->color,
+						'position' => 0,
 						'count' => 0,
 						'selected' => 1,
+						'group_id' => isset($groupMap[$mid]) ? $groupMap[$mid]['id'] : 0,
+						'group_label' => isset($groupMap[$mid]) ? $groupMap[$mid]['label'] : '',
+						'group_position' => isset($groupMap[$mid]) ? $groupMap[$mid]['position'] : 0,
 					));
 				}
 				$this->db->free($resql);
 			}
 		}
 
+		$this->sortFacets($out);
+
 		return $out;
+	}
+
+	/**
+	 * Order facets for display, following Dolibarr's own category Position.
+	 *
+	 * This adds no ordering concept of its own: position is the native
+	 * llx_categorie column (default 0), the same field the folder navigation in
+	 * this class already sorts by. Setting it in Dolibarr is what makes a size
+	 * list read 1/8, 1/4, 1/2 rather than alphabetically, where "1/2 in." would
+	 * come first.
+	 *
+	 * The only thing done here beyond ordering is keeping a group's values
+	 * adjacent, which the facet query cannot express because a facet's group is
+	 * resolved by walking ancestors rather than by a column.
+	 *
+	 * @param  array<int,array<string,mixed>> $facets Facets, by reference
+	 * @return void
+	 */
+	private function sortFacets(&$facets)
+	{
+		usort($facets, function ($a, $b) {
+			$ag = !empty($a['group_id']);
+			$bg = !empty($b['group_id']);
+
+			// Attribute groups first, loose tags after them.
+			if ($ag !== $bg) {
+				return $ag ? -1 : 1;
+			}
+
+			// Keep a group's values together, groups in their own Position order.
+			if ($ag) {
+				if ($a['group_position'] !== $b['group_position']) {
+					return $a['group_position'] - $b['group_position'];
+				}
+				if ($a['group_id'] !== $b['group_id']) {
+					return strcasecmp($a['group_label'], $b['group_label']);
+				}
+			}
+
+			if ($a['position'] !== $b['position']) {
+				return $a['position'] - $b['position'];
+			}
+
+			return strcasecmp($a['label'], $b['label']);
+		});
 	}
 
 	/**

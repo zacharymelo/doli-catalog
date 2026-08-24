@@ -114,3 +114,7 @@ ListTree = Filtre categorie sur la liste produits
 ListTreeDesc = Adds a category strip above the native product list. Clicking a category filters the list to that category and everything beneath it, which the built-in category filter cannot do on its own. Sorting, columns, mass actions and export are unaffected.
 DoliCatalogRefineBy = Affiner par tag
 DoliCatalogClearTags = Effacer les tags
+DoliCatalogOtherTags = Autres
+DoliCatalogMoreValues = de plus
+AttributeRoots = Racines d'attributs
+AttributeRootsDesc = Comma separated category ids whose direct children name an attribute (for example a category called "Attribute" holding Material, Thread Type, Thread Size). Values beneath them are grouped under their attribute name when refining a category, and ordered by each category's own Position. Leave empty to show tags as one flat list.
