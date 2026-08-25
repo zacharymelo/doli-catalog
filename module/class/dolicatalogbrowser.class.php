@@ -104,7 +104,7 @@ class DoliCatalogBrowser
 	 *
 	 * @return array<int,array{id:int,label:string,color:string,description:string,position:int}> Root categories
 	 */
-	public function getRootCategories()
+	public function getRootCategories($includeArchived = false)
 	{
 		$configured = trim(getDolGlobalString('DOLICATALOG_ROOT_CATEGORIES', ''));
 
@@ -129,6 +129,7 @@ class DoliCatalogBrowser
 			$sql .= " AND (c.fk_parent = 0 OR c.fk_parent IS NULL)";
 		}
 
+		$sql .= $this->archivedCategoryClause($includeArchived);
 		$sql .= " ORDER BY c.position ASC, c.label ASC";
 
 		return $this->fetchCategoryRows($sql);
@@ -140,7 +141,7 @@ class DoliCatalogBrowser
 	 * @param  int $parentId Parent category id
 	 * @return array<int,array{id:int,label:string,color:string,description:string,position:int}> Child categories
 	 */
-	public function getChildCategories($parentId)
+	public function getChildCategories($parentId, $includeArchived = false)
 	{
 		$parentId = (int) $parentId;
 		if ($parentId <= 0) {
@@ -152,6 +153,7 @@ class DoliCatalogBrowser
 		$sql .= " WHERE c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
 		$sql .= " AND c.entity IN (".getEntity('category').")";
 		$sql .= " AND c.fk_parent = ".$parentId;
+		$sql .= $this->archivedCategoryClause($includeArchived);
 		$sql .= " ORDER BY c.position ASC, c.label ASC";
 
 		return $this->fetchCategoryRows($sql);
@@ -370,6 +372,7 @@ class DoliCatalogBrowser
 			$sql .= " AND c.rowid IN (".$this->db->sanitize(implode(',', $inScope)).")";
 		}
 
+		$sql .= $this->archivedCategoryClause(!empty($filters['includeArchived']));
 		$sql .= " ORDER BY c.label ASC";
 		$sql .= $this->db->plimit(20, 0);
 
@@ -475,6 +478,31 @@ class DoliCatalogBrowser
 		$this->db->free($resql);
 
 		return $obj ? (int) $obj->cnt : 0;
+	}
+
+	/**
+	 * SQL excluding the archived subtree from a category listing.
+	 *
+	 * Hiding archived products but still listing the folder they live in leaves a
+	 * folder that opens onto nothing, which reads as a bug rather than as a
+	 * policy.
+	 *
+	 * @param  bool   $includeArchived Skip the exclusion entirely
+	 * @param  string $alias           Table alias for llx_categorie
+	 * @return string                  SQL fragment, empty when nothing to exclude
+	 */
+	private function archivedCategoryClause($includeArchived, $alias = 'c')
+	{
+		if ($includeArchived) {
+			return '';
+		}
+
+		$ids = $this->getArchivedCategoryIds();
+		if (empty($ids)) {
+			return '';
+		}
+
+		return " AND ".$alias.".rowid NOT IN (".$this->db->sanitize(implode(',', $ids)).")";
 	}
 
 	/**

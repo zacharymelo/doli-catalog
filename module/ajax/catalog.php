@@ -110,8 +110,8 @@ $filters = array(
 switch ($action) {
 	case 'browse':
 		$categories = $category > 0
-			? $catalog->getChildCategories($category)
-			: $catalog->getRootCategories();
+			? $catalog->getChildCategories($category, (bool) $includeArchived)
+			: $catalog->getRootCategories((bool) $includeArchived);
 
 		// Annotate each folder with how many products sit beneath it.
 		$hideEmpty = getDolGlobalInt('DOLICATALOG_HIDE_EMPTY_CATEGORIES', 0);

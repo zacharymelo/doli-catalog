@@ -159,8 +159,11 @@ class ActionsDoliCatalog
 		$countFilters = array('mode' => 'all');
 
 		$children = $current > 0
-			? $browser->getChildCategories($current)
-			: $browser->getRootCategories();
+			// true: this strip filters Dolibarr's own product list, which shows
+			// archived products like any other. Hiding the folder here would
+			// leave the strip disagreeing with the list underneath it.
+			? $browser->getChildCategories($current, true)
+			: $browser->getRootCategories(true);
 
 		$out = '<div class="divsearchfield dolicatalog-listtree" id="dolicatalog-listtree">';
 

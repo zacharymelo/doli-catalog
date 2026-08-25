@@ -14,6 +14,25 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.7.1] - 2026-08-24
+
+### Fixed
+
+- **The archived category itself still appeared in the catalogue**, even though
+  its products were hidden. Opening it showed an empty folder, which reads as a
+  bug rather than as a policy.
+
+  The archived category and everything beneath it are now excluded from the root
+  folders, from subfolder listings and from search results, on the same
+  condition as the products. **Show archived** brings the folder back along with
+  its contents.
+
+  Two places deliberately keep listing it: the setup picker, or the setting
+  could never be configured in the first place, and the product list filter
+  strip, because that strip filters Dolibarr's own list, which shows archived
+  products like anything else — hiding the folder there would leave the strip
+  disagreeing with the list underneath it.
+
 ## [1.7.0] - 2026-08-24
 
 ### Added
@@ -416,6 +435,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.7.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.1
 [1.7.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.0
 [1.6.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.6.0
 [1.5.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.2
