@@ -28,6 +28,8 @@
 		search: '',
 		type: -1,
 		warehouse: 0,
+		// Archived products are hidden unless the user asks to see them.
+		archived: 0,
 		// Cross-cutting tag ids. Several OR with each other and AND with the
 		// category, search and type filters.
 		facets: [],
@@ -83,6 +85,7 @@
 		q.set('type', state.type);
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
+		if (state.archived) { q.set('archived', 1); }
 		state.facets.forEach(function (id) { q.append('facets[]', id); });
 		state.facetsAny.forEach(function (id) { q.append('facetsany[]', id); });
 
@@ -326,7 +329,7 @@
 		return row;
 	}
 
-	function renderFacets(facets) {
+	function renderFacets(facets, truncated) {
 		if (!facets || !facets.length) { return null; }
 
 		var collapsed = facetsCollapsed();
@@ -377,6 +380,15 @@
 			bucket.push(f);
 		});
 		flush();
+
+		// A filter that silently omits options is worse than one that admits it.
+		if (truncated > 0) {
+			var note = make('span', 'dcb-facet-more',
+				'+' + truncated + ' ' + label('DoliCatalogMoreTagsHidden', 'more not shown'));
+			note.title = label('DoliCatalogMoreTagsHiddenTooltip',
+				'Raise the tag filter limit in the module setup to show more.');
+			body.appendChild(note);
+		}
 
 		if (state.facets.length) {
 			var clearBtn = make('button', 'dcb-facet-clear', label('DoliCatalogClearTags', 'Clear all'));
@@ -607,7 +619,7 @@
 
 			// Between the two on purpose: below the folders you navigate with,
 			// above the items they narrow.
-			var facetRow = renderFacets(data.facets);
+			var facetRow = renderFacets(data.facets, data.facetsTruncated || 0);
 			if (facetRow) { host.appendChild(facetRow); }
 
 			if (prods.length) { host.appendChild(renderProducts(prods)); }
@@ -640,6 +652,15 @@
 			state.offset = 0;
 			load();
 		});
+
+		var arch = el('dcb-archived');
+		if (arch) {
+			arch.addEventListener('change', function () {
+				state.archived = arch.checked ? 1 : 0;
+				state.offset = 0;
+				load();
+			});
+		}
 
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {

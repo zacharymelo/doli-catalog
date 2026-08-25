@@ -42,7 +42,23 @@ $action = GETPOST('action', 'aZ09');
 // Non-boolean settings post here; the on/off toggles save themselves over AJAX.
 if ($action === 'update') {
 	$constname = GETPOST('constname', 'alpha');
-	$constvalue = GETPOST('constvalue', 'alphanohtml');
+
+	// The category pickers submit a multi-select, so these arrive as an array
+	// of ids rather than as text.
+	$multiCategory = array('DOLICATALOG_ROOT_CATEGORIES', 'DOLICATALOG_ATTRIBUTE_ROOTS');
+	if (in_array($constname, $multiCategory, true)) {
+		$picked = GETPOST('constvalue', 'array:int');
+		$ids = array();
+		foreach ((is_array($picked) ? $picked : array()) as $one) {
+			$one = (int) $one;
+			if ($one > 0) {
+				$ids[$one] = $one;
+			}
+		}
+		$constvalue = implode(',', $ids);
+	} else {
+		$constvalue = GETPOST('constvalue', 'alphanohtml');
+	}
 
 	$allowed = array(
 		'DOLICATALOG_MAX_RESULTS',
@@ -50,6 +66,8 @@ if ($action === 'update') {
 		'DOLICATALOG_DEFAULT_QTY',
 		'DOLICATALOG_BUTTON_ICON',
 		'DOLICATALOG_ROOT_CATEGORIES',
+		'DOLICATALOG_ARCHIVED_CATEGORY',
+		'DOLICATALOG_MAX_FACETS',
 		'DOLICATALOG_ATTRIBUTE_ROOTS',
 	);
 
@@ -63,6 +81,10 @@ if ($action === 'update') {
 			$constvalue = (string) max(1, min(100, (int) $constvalue));
 		} elseif ($constname === 'DOLICATALOG_DEFAULT_QTY') {
 			$constvalue = (string) max(1, min(9999, (int) $constvalue));
+		} elseif ($constname === 'DOLICATALOG_MAX_FACETS') {
+			$constvalue = (string) max(10, min(500, (int) $constvalue));
+		} elseif ($constname === 'DOLICATALOG_ARCHIVED_CATEGORY') {
+			$constvalue = (string) max(0, (int) $constvalue);
 		} elseif ($constname === 'DOLICATALOG_ROOT_CATEGORIES' || $constname === 'DOLICATALOG_ATTRIBUTE_ROOTS') {
 			// Keep digits and commas only.
 			$parts = array();
@@ -147,10 +169,12 @@ dolicatalogPrintToggleRow('DOLICATALOG_ENABLE_RECENT', 'EnableRecent', 'EnableRe
 dolicatalogPrintInputRow('DOLICATALOG_MAX_RESULTS', 'MaxResults', 'MaxResultsDesc', 'number', '50', 'min="1" max="500" style="width:70px;"');
 dolicatalogPrintInputRow('DOLICATALOG_RECENT_COUNT', 'RecentCount', 'RecentCountDesc', 'number', '12', 'min="1" max="100" style="width:70px;"');
 dolicatalogPrintInputRow('DOLICATALOG_DEFAULT_QTY', 'DefaultQty', 'DefaultQtyDesc', 'number', '1', 'min="1" max="9999" style="width:70px;"');
-dolicatalogPrintInputRow('DOLICATALOG_ROOT_CATEGORIES', 'RootCategories', 'RootCategoriesDesc', 'text', '', 'size="24" placeholder="e.g. 3,7,12"');
-dolicatalogPrintInputRow('DOLICATALOG_ATTRIBUTE_ROOTS', 'AttributeRoots', 'AttributeRootsDesc', 'text', '', 'size="24" placeholder="e.g. 15"');
+dolicatalogPrintCategoryMultiRow('DOLICATALOG_ROOT_CATEGORIES', 'RootCategories', 'RootCategoriesDesc');
+dolicatalogPrintCategoryMultiRow('DOLICATALOG_ATTRIBUTE_ROOTS', 'AttributeRoots', 'AttributeRootsDesc');
 
 // Debug toggle stays last.
+dolicatalogPrintInputRow('DOLICATALOG_MAX_FACETS', 'MaxFacets', 'MaxFacetsDesc', 'number', '200', 'min="10" max="500" style="width:70px;"');
+dolicatalogPrintCategoryRow('DOLICATALOG_ARCHIVED_CATEGORY', 'ArchivedCategory', 'ArchivedCategoryDesc');
 dolicatalogPrintToggleRow('DOLICATALOG_LIST_TREE', 'ListTree', 'ListTreeDesc');
 dolicatalogPrintToggleRow('DOLICATALOG_DEBUG_MODE', 'DebugMode', 'DebugModeDesc');
 

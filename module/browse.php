@@ -81,6 +81,16 @@ if (isModEnabled('stock') && getDolGlobalInt('DOLICATALOG_SHOW_STOCK', 1)) {
 	print $formproduct->selectWarehouses(-1, 'dcb_warehouse', '', 1, 0, 0, $langs->trans('DoliCatalogAllWarehouses'), 0, 1);
 	print '</span>';
 }
+
+// Only offered when an archived category has actually been configured;
+// otherwise the checkbox would toggle nothing.
+if (getDolGlobalInt('DOLICATALOG_ARCHIVED_CATEGORY') > 0) {
+	print '<label class="dolicatalog-archived-toggle">';
+	print '<input type="checkbox" id="dcb-archived"> ';
+	print dol_escape_htmltag($langs->trans('DoliCatalogShowArchived'));
+	print '</label>';
+}
+
 print '</div>';
 
 print '<div class="dolicatalog-browse-crumbs" id="dcb-breadcrumb"></div>';
@@ -111,7 +121,8 @@ $labelKeys = array(
 	'DoliCatalogEmptyCategory', 'DoliCatalogError', 'DoliCatalogFavorites',
 	'DoliCatalogRecent', 'DoliCatalogOpenProduct', 'DoliCatalogAddFavorite',
 	'DoliCatalogRemoveFavorite', 'DoliCatalogPrevious', 'DoliCatalogNext',
-	'DoliCatalogBrowseEmpty', 'DoliCatalogRefineBy', 'DoliCatalogClearTags', 'DoliCatalogOtherTags', 'DoliCatalogMoreValues',
+	'DoliCatalogBrowseEmpty', 'DoliCatalogShowArchived', 'DoliCatalogArchivedBadge',
+	'DoliCatalogMoreTagsHidden', 'DoliCatalogMoreTagsHiddenTooltip', 'DoliCatalogRefineBy', 'DoliCatalogClearTags', 'DoliCatalogOtherTags', 'DoliCatalogMoreValues',
 	'DoliCatalogMatchAll', 'DoliCatalogMatchAny', 'DoliCatalogMatchAllHint', 'DoliCatalogMatchAnyHint',
 	'DoliCatalogFiltersActive',
 );

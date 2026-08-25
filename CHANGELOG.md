@@ -14,6 +14,42 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.7.0] - 2026-08-24
+
+### Added
+
+- **Archived category setting.** Pick a category in setup and any product in it,
+  or in any category beneath it, is treated as withdrawn: hidden from the
+  catalogue page, the picker, search, favourites and recents. Folder counts
+  exclude them too, so a folder never advertises items the catalogue then
+  refuses to show.
+
+  A **Show archived** checkbox on the catalogue page brings them back when
+  needed. It only appears once a category has actually been configured.
+
+  The exclusion lives in the shared product filter rather than at each call
+  site, so it applies everywhere by construction instead of wherever someone
+  remembered to add it.
+
+### Changed
+
+- **All three tag-driven settings now use category pickers** instead of asking
+  for ids. Nobody knows their category ids, and a mistyped one fails silently by
+  matching nothing. Root categories and attribute roots are multi-selects;
+  archived is a single select.
+
+### Fixed
+
+- **Rarely used tags were missing from the tag filter.** The filter returned the
+  top 40 tags by product count, so on a catalogue with more than 40 distinct
+  tags in scope the tail was dropped — and because the cut is by rank, whatever
+  count happened to sit at the boundary looked like a minimum threshold. Two
+  tags with identical counts could even land on opposite sides of it.
+
+  The cap is now configurable (**Maximum tag filters**, default 200, was 40),
+  and when it does bite the filter says so with a "+N more not shown" note
+  rather than quietly omitting options.
+
 ## [1.6.0] - 2026-08-24
 
 ### Added
@@ -380,6 +416,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.7.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.0
 [1.6.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.6.0
 [1.5.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.2
 [1.5.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.5.1

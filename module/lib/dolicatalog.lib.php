@@ -163,3 +163,97 @@ function dolicatalogStylesheetTag()
 	return '<link rel="stylesheet" type="text/css" href="'
 		.dol_buildpath($rel, 1).'?v='.urlencode(dolicatalogAssetVersion($rel)).'">';
 }
+
+/**
+ * Render a setting whose value is a single product category.
+ *
+ * A select rather than an id field: nobody knows their category ids, and a
+ * mistyped one fails silently by matching nothing.
+ *
+ * @param  string $constant Constant name
+ * @param  string $labelKey Translation key for the label
+ * @param  string $helpKey  Translation key for the help text
+ * @return void
+ */
+function dolicatalogPrintCategoryRow($constant, $labelKey, $helpKey)
+{
+	global $langs, $db;
+
+	dol_include_once('/dolicatalog/class/dolicatalogbrowser.class.php');
+	$browser = new DoliCatalogBrowser($db);
+	$paths = $browser->getCategoryPathMap();
+	asort($paths);
+
+	$current = (int) getDolGlobalInt($constant);
+
+	print '<tr class="oddeven">';
+	print '<td>'.$langs->trans($labelKey).'</td>';
+	print '<td class="center">';
+	print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" style="margin:0;">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="update">';
+	print '<input type="hidden" name="constname" value="'.dol_escape_htmltag($constant).'">';
+	print '<select name="constvalue" class="flat">';
+	print '<option value="0">'.dol_escape_htmltag($langs->trans('None')).'</option>';
+	foreach ($paths as $id => $path) {
+		print '<option value="'.((int) $id).'"'.($current === (int) $id ? ' selected' : '').'>';
+		print dol_escape_htmltag($path);
+		print '</option>';
+	}
+	print '</select>';
+	print ' <input type="submit" class="button smallpaddingimp" value="'.$langs->trans('Save').'">';
+	print '</form>';
+	print '</td>';
+	print '<td class="opacitymedium">'.$langs->trans($helpKey).'</td>';
+	print '</tr>';
+}
+
+/**
+ * Render a setting whose value is a comma separated list of product categories.
+ *
+ * Same reasoning as the single-category row: category ids are not something
+ * anyone knows by heart, and a wrong one fails silently by matching nothing.
+ * Submits as constvalue[]; the save handler joins it back into a list.
+ *
+ * @param  string $constant Constant name
+ * @param  string $labelKey Translation key for the label
+ * @param  string $helpKey  Translation key for the help text
+ * @return void
+ */
+function dolicatalogPrintCategoryMultiRow($constant, $labelKey, $helpKey)
+{
+	global $langs, $db;
+
+	dol_include_once('/dolicatalog/class/dolicatalogbrowser.class.php');
+	$browser = new DoliCatalogBrowser($db);
+	$paths = $browser->getCategoryPathMap();
+	asort($paths);
+
+	$current = array();
+	foreach (explode(',', (string) getDolGlobalString($constant, '')) as $chunk) {
+		$chunk = (int) trim($chunk);
+		if ($chunk > 0) {
+			$current[] = $chunk;
+		}
+	}
+
+	print '<tr class="oddeven">';
+	print '<td>'.$langs->trans($labelKey).'</td>';
+	print '<td class="center">';
+	print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" style="margin:0;">';
+	print '<input type="hidden" name="token" value="'.newToken().'">';
+	print '<input type="hidden" name="action" value="update">';
+	print '<input type="hidden" name="constname" value="'.dol_escape_htmltag($constant).'">';
+	print '<select name="constvalue[]" class="flat" multiple size="'.min(8, max(3, count($paths))).'" style="min-width:220px;">';
+	foreach ($paths as $id => $path) {
+		print '<option value="'.((int) $id).'"'.(in_array((int) $id, $current, true) ? ' selected' : '').'>';
+		print dol_escape_htmltag($path);
+		print '</option>';
+	}
+	print '</select><br>';
+	print '<input type="submit" class="button smallpaddingimp" value="'.$langs->trans('Save').'">';
+	print '</form>';
+	print '</td>';
+	print '<td class="opacitymedium">'.$langs->trans($helpKey).'</td>';
+	print '</tr>';
+}

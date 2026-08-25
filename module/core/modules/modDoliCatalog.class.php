@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.6.0';
+		$this->version = '1.7.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';
@@ -102,6 +102,8 @@ class modDoliCatalog extends DolibarrModules
 			array('DOLICATALOG_ROOT_CATEGORIES', 'chaine', '', 'Comma separated category ids to show as roots (empty = all roots)', 0, 'current', 1),
 			array('DOLICATALOG_LIST_TREE', 'chaine', '0', 'Show a category filter strip above the product list', 0, 'current', 1),
 			array('DOLICATALOG_ATTRIBUTE_ROOTS', 'chaine', '', 'Category ids whose children name an attribute', 0, 'current', 1),
+			array('DOLICATALOG_MAX_FACETS', 'chaine', '200', 'Maximum tag filters shown before the list is truncated', 0, 'current', 1),
+			array('DOLICATALOG_ARCHIVED_CATEGORY', 'chaine', '0', 'Category marking a product as archived and hidden from the catalog', 0, 'current', 1),
 			array('DOLICATALOG_DEBUG_MODE', 'chaine', '0', 'Expose the diagnostic endpoint', 0, 'current', 1),
 		);
 

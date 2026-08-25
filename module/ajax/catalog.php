@@ -88,6 +88,9 @@ $offset = GETPOSTINT('offset');
 // everything else: "inside this category, tagged A or B".
 $facets = GETPOST('facets', 'array:int');
 
+// Opt-in: archived products are hidden everywhere unless asked for.
+$includeArchived = GETPOSTINT('archived');
+
 // Attributes the caller has switched from "all" to "any". Per attribute, so
 // Thread Size can widen while Material keeps narrowing.
 $facetsAny = GETPOST('facetsany', 'array:int');
@@ -96,6 +99,7 @@ $filters = array(
 	'mode' => $mode,
 	'offset' => $offset,
 	'facets' => is_array($facets) ? $facets : array(),
+	'includeArchived' => $includeArchived ? 1 : 0,
 	'facetsAny' => is_array($facetsAny) ? $facetsAny : array(),
 	'type' => $type,
 	'warehouse' => $warehouse,
@@ -141,6 +145,7 @@ switch ($action) {
 			'facets' => $category > 0
 				? $catalog->getFacets($scoped + array('excludeCategories' => array_column($decorated, 'id')))
 				: array(),
+			'facetsTruncated' => $catalog->facetsTruncated,
 		));
 		break;
 
@@ -173,6 +178,7 @@ switch ($action) {
 			'truncated' => $products['truncated'],
 			'offset' => $offset,
 			'facets' => $catalog->getFacets($searchFilters + array('excludeCategories' => array_column($matchedCategories, 'id'))),
+			'facetsTruncated' => $catalog->facetsTruncated,
 			'scoped' => $category > 0 ? 1 : 0,
 		));
 		break;

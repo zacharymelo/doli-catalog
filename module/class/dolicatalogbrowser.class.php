@@ -33,6 +33,16 @@ class DoliCatalogBrowser
 	/** @var string[] Error stack */
 	public $errors = array();
 
+	/**
+	 * How many tag filters were cut by the cap on the last getFacets() call.
+	 *
+	 * Zero when nothing was dropped. Exposed so the interface can say the list
+	 * is partial rather than quietly omitting options.
+	 *
+	 * @var int
+	 */
+	public $facetsTruncated = 0;
+
 	/** Product-type category discriminator in llx_categorie.type */
 	const CATEGORY_TYPE_PRODUCT = 0;
 
@@ -440,6 +450,16 @@ class DoliCatalogBrowser
 		}
 		$sql .= " WHERE cp.fk_categorie IN (".$this->db->sanitize(implode(',', $ids)).")";
 		$sql .= " AND p.entity IN (".getEntity('product').")";
+		// Same exclusion as the listing, or a folder advertises a count the
+		// catalogue then refuses to show.
+		if (empty($filters['includeArchived'])) {
+			$archivedIds = $this->getArchivedCategoryIds();
+			if (!empty($archivedIds)) {
+				$sql .= " AND NOT EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as cpa";
+				$sql .= " WHERE cpa.fk_product = p.rowid";
+				$sql .= " AND cpa.fk_categorie IN (".$this->db->sanitize(implode(',', $archivedIds)).") )";
+			}
+		}
 		$sql .= $this->saleStatusClause($mode);
 
 		if (isset($filters['type']) && $filters['type'] >= 0) {
@@ -455,6 +475,25 @@ class DoliCatalogBrowser
 		$this->db->free($resql);
 
 		return $obj ? (int) $obj->cnt : 0;
+	}
+
+	/**
+	 * The archived category and everything beneath it.
+	 *
+	 * A single configured category marks a product as withdrawn. Descendants are
+	 * included so the reason for archiving can be sub-categorised without every
+	 * sub-category needing to be configured separately.
+	 *
+	 * @return int[] Category ids, empty when the setting is unset
+	 */
+	public function getArchivedCategoryIds()
+	{
+		$archived = getDolGlobalInt('DOLICATALOG_ARCHIVED_CATEGORY');
+		if ($archived <= 0) {
+			return array();
+		}
+
+		return $this->getDescendantIds($archived);
 	}
 
 	/**
@@ -512,6 +551,19 @@ class DoliCatalogBrowser
 				$where .= " AND 1 = 0";
 			} else {
 				$where .= " AND p.rowid IN (".$this->db->sanitize(implode(',', $clean)).")";
+			}
+		}
+
+		// Archived products are withdrawn from the catalogue unless explicitly
+		// asked for. Applied in the shared filter rather than at each call site, so
+		// it holds for the picker, the browse page, search, favourites and recents
+		// alike, and so facet counts agree with the list they describe.
+		if (empty($filters['includeArchived'])) {
+			$archivedIds = $this->getArchivedCategoryIds();
+			if (!empty($archivedIds)) {
+				$where .= " AND NOT EXISTS (SELECT 1 FROM ".MAIN_DB_PREFIX."categorie_product as cpa";
+				$where .= " WHERE cpa.fk_product = p.rowid";
+				$where .= " AND cpa.fk_categorie IN (".$this->db->sanitize(implode(',', $archivedIds)).") )";
 			}
 		}
 
@@ -734,9 +786,17 @@ class DoliCatalogBrowser
 	 * @param  int                 $limit   Maximum facets returned
 	 * @return array<int,array<string,mixed>> Facets, most common first
 	 */
-	public function getFacets($filters = array(), $limit = 40)
+	public function getFacets($filters = array(), $limit = 0)
 	{
-		$limit = max(1, min((int) $limit, 200));
+		// Rank-capped, not count-capped. Whatever count happens to sit at the
+		// boundary reads as a minimum threshold to anyone using the filter, so the
+		// cap is generous by default and the caller is told when it bites.
+		if ($limit <= 0) {
+			$limit = getDolGlobalInt('DOLICATALOG_MAX_FACETS', 200);
+		}
+		$limit = max(1, min((int) $limit, 500));
+
+		$this->facetsTruncated = 0;
 
 		$selected = $this->cleanFacetIds(isset($filters['facets']) ? $filters['facets'] : array());
 		$anyGroups = $this->cleanFacetIds(isset($filters['facetsAny']) ? $filters['facetsAny'] : array());
@@ -745,6 +805,12 @@ class DoliCatalogBrowser
 		// Counts reflect every filter currently applied, so the number beside a
 		// value is what you are left with after adding it.
 		$rows = $this->countFacetRows($filters, $limit, null);
+
+		// Only worth a second query when the cap was actually reached.
+		if (count($rows) >= $limit) {
+			$total = $this->countDistinctFacets($filters);
+			$this->facetsTruncated = max(0, $total - count($rows));
+		}
 
 		// An attribute set to "any" is the exception. Counting its own values
 		// against its own selection would leave every unselected one at zero, so
@@ -842,6 +908,38 @@ class DoliCatalogBrowser
 	 * @param  int[]|null          $restrictTo Only count these categories, or null for all
 	 * @return array<int,array<string,mixed>>  Category id => label/colour/position/count
 	 */
+	/**
+	 * How many distinct tags the current filters could offer, ignoring the cap.
+	 *
+	 * Used only to report how many were dropped, so it runs solely when the cap
+	 * was reached.
+	 *
+	 * @param  array<string,mixed> $filters Same filters as getFacets()
+	 * @return int                          Distinct tag count
+	 */
+	private function countDistinctFacets($filters)
+	{
+		$scope = $this->buildProductFilterSql($filters);
+
+		$sql = "SELECT COUNT(DISTINCT c.rowid) as cnt";
+		$sql .= " FROM ".MAIN_DB_PREFIX."product as p";
+		$sql .= $scope['joins'];
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie_product as cpx ON cpx.fk_product = p.rowid";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."categorie as c ON c.rowid = cpx.fk_categorie";
+		$sql .= $scope['where'];
+		$sql .= " AND c.type = ".((int) self::CATEGORY_TYPE_PRODUCT);
+		$sql .= " AND c.entity IN (".getEntity('category').")";
+
+		$resql = $this->db->query($sql);
+		if (!$resql) {
+			return 0;
+		}
+		$o = $this->db->fetch_object($resql);
+		$this->db->free($resql);
+
+		return $o ? (int) $o->cnt : 0;
+	}
+
 	private function countFacetRows($filters, $limit, $restrictTo = null)
 	{
 		$scope = $this->buildProductFilterSql($filters);
