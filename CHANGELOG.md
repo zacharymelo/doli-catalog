@@ -14,6 +14,20 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.7.2] - 2026-08-24
+
+### Fixed
+
+- **Settings no longer vanish when the module is disabled.** Every constant was
+  declared with Dolibarr's `deleteonunactive` flag set, so `delete_const()`
+  dropped the lot whenever the module was deactivated. Because several changes
+  here need a disable/enable cycle to take effect — menus and hook contexts are
+  only written at activation — a routine upgrade wiped the configuration.
+
+  All constants are now flagged to persist. A constant that is genuinely absent
+  is still seeded with its declared default on activation, and an existing value
+  is never overwritten by that seeding.
+
 ## [1.7.1] - 2026-08-24
 
 ### Fixed
@@ -435,6 +449,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.7.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.2
 [1.7.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.1
 [1.7.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.0
 [1.6.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.6.0

@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.7.1';
+		$this->version = '1.7.2';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';
@@ -87,24 +87,29 @@ class modDoliCatalog extends DolibarrModules
 		$this->need_dolibarr_version = array(19, 0);
 
 		// Default configuration applied on activation.
+		// The last value of each row is deleteonunactive. It is 0 deliberately.
+		// Dolibarr's delete_const() drops any constant flagged 1 when the module is
+		// disabled, and several changes here need a disable/enable cycle to take
+		// effect (menus and hook contexts are only written at activation). Flagging
+		// these 1 would wipe every configured setting during a routine upgrade.
 		$this->const = array(
-			array('DOLICATALOG_SHOW_STOCK', 'chaine', '1', 'Show stock column in the picker', 0, 'current', 1),
-			array('DOLICATALOG_SHOW_TTC', 'chaine', '0', 'Show price incl. tax in the picker', 0, 'current', 1),
-			array('DOLICATALOG_SHOW_IMAGES', 'chaine', '1', 'Show product thumbnails in the picker', 0, 'current', 1),
-			array('DOLICATALOG_SHOW_DURATION', 'chaine', '1', 'Show service duration in the picker', 0, 'current', 1),
-			array('DOLICATALOG_ENABLE_FAVORITES', 'chaine', '1', 'Enable per-user favourites', 0, 'current', 1),
-			array('DOLICATALOG_ENABLE_RECENT', 'chaine', '1', 'Enable per-user recently used', 0, 'current', 1),
-			array('DOLICATALOG_HIDE_EMPTY_CATEGORIES', 'chaine', '0', 'Hide categories with no products', 0, 'current', 1),
-			array('DOLICATALOG_MAX_RESULTS', 'chaine', '50', 'Maximum rows returned per query', 0, 'current', 1),
-			array('DOLICATALOG_RECENT_COUNT', 'chaine', '12', 'Number of recent items to keep per user', 0, 'current', 1),
-			array('DOLICATALOG_DEFAULT_QTY', 'chaine', '1', 'Default quantity pre-filled for a picked item', 0, 'current', 1),
-			array('DOLICATALOG_BUTTON_ICON', 'chaine', 'fa-th-large', 'Font Awesome class used for the trigger button', 0, 'current', 1),
-			array('DOLICATALOG_ROOT_CATEGORIES', 'chaine', '', 'Comma separated category ids to show as roots (empty = all roots)', 0, 'current', 1),
-			array('DOLICATALOG_LIST_TREE', 'chaine', '0', 'Show a category filter strip above the product list', 0, 'current', 1),
-			array('DOLICATALOG_ATTRIBUTE_ROOTS', 'chaine', '', 'Category ids whose children name an attribute', 0, 'current', 1),
-			array('DOLICATALOG_MAX_FACETS', 'chaine', '200', 'Maximum tag filters shown before the list is truncated', 0, 'current', 1),
-			array('DOLICATALOG_ARCHIVED_CATEGORY', 'chaine', '0', 'Category marking a product as archived and hidden from the catalog', 0, 'current', 1),
-			array('DOLICATALOG_DEBUG_MODE', 'chaine', '0', 'Expose the diagnostic endpoint', 0, 'current', 1),
+			array('DOLICATALOG_SHOW_STOCK', 'chaine', '1', 'Show stock column in the picker', 0, 'current', 0),
+			array('DOLICATALOG_SHOW_TTC', 'chaine', '0', 'Show price incl. tax in the picker', 0, 'current', 0),
+			array('DOLICATALOG_SHOW_IMAGES', 'chaine', '1', 'Show product thumbnails in the picker', 0, 'current', 0),
+			array('DOLICATALOG_SHOW_DURATION', 'chaine', '1', 'Show service duration in the picker', 0, 'current', 0),
+			array('DOLICATALOG_ENABLE_FAVORITES', 'chaine', '1', 'Enable per-user favourites', 0, 'current', 0),
+			array('DOLICATALOG_ENABLE_RECENT', 'chaine', '1', 'Enable per-user recently used', 0, 'current', 0),
+			array('DOLICATALOG_HIDE_EMPTY_CATEGORIES', 'chaine', '0', 'Hide categories with no products', 0, 'current', 0),
+			array('DOLICATALOG_MAX_RESULTS', 'chaine', '50', 'Maximum rows returned per query', 0, 'current', 0),
+			array('DOLICATALOG_RECENT_COUNT', 'chaine', '12', 'Number of recent items to keep per user', 0, 'current', 0),
+			array('DOLICATALOG_DEFAULT_QTY', 'chaine', '1', 'Default quantity pre-filled for a picked item', 0, 'current', 0),
+			array('DOLICATALOG_BUTTON_ICON', 'chaine', 'fa-th-large', 'Font Awesome class used for the trigger button', 0, 'current', 0),
+			array('DOLICATALOG_ROOT_CATEGORIES', 'chaine', '', 'Comma separated category ids to show as roots (empty = all roots)', 0, 'current', 0),
+			array('DOLICATALOG_LIST_TREE', 'chaine', '0', 'Show a category filter strip above the product list', 0, 'current', 0),
+			array('DOLICATALOG_ATTRIBUTE_ROOTS', 'chaine', '', 'Category ids whose children name an attribute', 0, 'current', 0),
+			array('DOLICATALOG_MAX_FACETS', 'chaine', '200', 'Maximum tag filters shown before the list is truncated', 0, 'current', 0),
+			array('DOLICATALOG_ARCHIVED_CATEGORY', 'chaine', '0', 'Category marking a product as archived and hidden from the catalog', 0, 'current', 0),
+			array('DOLICATALOG_DEBUG_MODE', 'chaine', '0', 'Expose the diagnostic endpoint', 0, 'current', 0),
 		);
 
 		// Single permission: may this user open the catalog browser at all.
