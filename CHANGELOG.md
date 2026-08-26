@@ -14,6 +14,26 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.7.3] - 2026-08-24
+
+### Fixed
+
+- **Setup panel help text.** Several descriptions no longer matched the module.
+  Root categories and Attribute roots still asked for "comma separated category
+  ids" after both became pickers. Maximum tag filters still said a low value
+  "silently hides" tags, which stopped being true once the filter began
+  reporting how many it cut. Archived category did not mention that the category
+  itself is hidden, not only its products.
+
+  The rest were inconsistent rather than wrong: bounded numeric settings stated
+  their range in some rows and not others, and only one description carried a
+  "When enabled," preamble. Every description now follows the same shape, and
+  each bounded setting states its range.
+
+- **Half-translated French.** Newer settings were left in English in the French
+  file, and its Root categories text carried the same stale "comma separated
+  ids" claim. All setup strings are now translated.
+
 ## [1.7.2] - 2026-08-24
 
 ### Fixed
@@ -449,6 +469,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.7.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.3
 [1.7.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.2
 [1.7.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.1
 [1.7.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.0
