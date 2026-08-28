@@ -14,6 +14,26 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.8.1] - 2026-08-24
+
+### Fixed
+
+- **A pinned currency price left the line internally inconsistent.** 1.8.0 set
+  the foreign-currency price from the pin but left the base-currency price as
+  the product's own. The two then disagreed: a line pinned at 1999 USD on a
+  document at rate 1.25 stored 1450 EUR beside it, implying a rate of 1.3786.
+  Every base-currency figure downstream — line total, margin, accounting —
+  described a sale that was not the one being made, drifting by 149.20 EUR per
+  unit in that example.
+
+  The pinned amount is the truth and the base-currency price is now derived back
+  from it at the document rate, which is what the Fixed Price module's own
+  back-calculation was preserving. The pinned figure is still passed explicitly
+  as well, so rounding the derived base price cannot move the agreed amount.
+
+  Applied to proposals, orders and invoices alike. 1.8.0 should not be used
+  where fixed prices are configured.
+
 ## [1.8.0] - 2026-08-24
 
 ### Fixed
@@ -500,6 +520,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.8.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.1
 [1.8.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.0
 [1.7.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.3
 [1.7.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.2

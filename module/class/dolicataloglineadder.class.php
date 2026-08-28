@@ -708,7 +708,29 @@ class DoliCatalogLineAdder
 
 		// A pinned currency price overrides the converted one, matching what the
 		// Fixed Price module does on the card pages.
-		$p['pu_ht_devise'] = $this->fixedCurrencyPrice($object, $product);
+		//
+		// The pinned figure is the truth, and the base-currency price is derived
+		// back from it at the document rate. Setting only the foreign price
+		// would leave the line claiming a rate of its own: the base price would
+		// still be the product's own, so base x rate would not equal the pinned
+		// amount, and every base-currency figure downstream - line total, margin,
+		// accounting - would describe a sale that is not the one being made.
+		// That is why the other module back-calculates rather than simply
+		// overriding, and it has to hold here too.
+		$fixed = $this->fixedCurrencyPrice($object, $product);
+		if ($fixed > 0) {
+			$rate = (float) $object->multicurrency_tx;
+			if ($rate <= 0) {
+				$rate = 1;
+			}
+
+			$p['pu_ht'] = price2num($fixed / $rate, 'MU');
+			$p['pu_ttc'] = 0;
+			$p['price_base_type'] = 'HT';
+			// Passed as well as derived, so rounding the base price cannot move
+			// the pinned amount off the figure that was actually agreed.
+			$p['pu_ht_devise'] = $fixed;
+		}
 
 		$p['desc'] = $this->buildDescription($product);
 
