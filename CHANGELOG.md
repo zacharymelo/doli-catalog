@@ -14,6 +14,28 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.8.2] - 2026-08-24
+
+### Fixed
+
+- **Catalogue cards showed the smallest thumbnail.** Dolibarr generates two
+  thumbnails, `_mini` and `_small`, and the module took whichever sorted first
+  by filename — always `_mini`. Measured on a 1200x800 photo that is 108x72,
+  stretched to fill a 220x132 card, which is where the pixelation came from.
+
+  Thumbnails are now chosen by the size they will be displayed at. The catalogue
+  page uses `_small` (405x270 on the same photo); the picker keeps `_mini`,
+  which is correct behind its 38px row thumbnails and avoids pulling larger
+  files for no benefit.
+
+- **Cards now load progressively.** The card paints `_mini` immediately and
+  swaps in `_small` once it has decoded, softened slightly until then so the
+  stand-in reads as loading rather than as a poor image. The grid fills at once
+  instead of staying empty while the larger files arrive.
+
+  On a display with no generated thumbnails the original is used for both, and
+  where only one size exists it is used for both, so nothing renders blank.
+
 ## [1.8.1] - 2026-08-24
 
 ### Fixed
@@ -520,6 +542,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.8.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.2
 [1.8.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.1
 [1.8.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.0
 [1.7.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.3

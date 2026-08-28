@@ -459,9 +459,24 @@
 			var media = make('div', 'dcb-media');
 			if (p.image) {
 				var img = document.createElement('img');
-				img.src = p.image;
 				img.alt = '';
 				img.loading = 'lazy';
+
+				// Paint the 128px file straight away, then swap in the 480px one
+				// once it has decoded. A card renders at roughly 220x132, so the
+				// small file alone would be visibly upscaled, and waiting for the
+				// large one would leave the grid empty while it loads.
+				img.src = p.image;
+				if (p.image_hi && p.image_hi !== p.image) {
+					img.classList.add('dcb-lowres');
+					var hi = new Image();
+					hi.onload = function () {
+						img.src = p.image_hi;
+						img.classList.remove('dcb-lowres');
+					};
+					hi.src = p.image_hi;
+				}
+
 				media.appendChild(img);
 			} else {
 				media.appendChild(make('span', 'fa ' + (p.type === 1 ? 'fa-cogs' : 'fa-cube') + ' dcb-placeholder'));

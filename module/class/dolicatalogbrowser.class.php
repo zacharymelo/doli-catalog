@@ -1284,7 +1284,15 @@ class DoliCatalogBrowser
 			sort($paths);
 
 			$rows[$k]['is_favorite'] = in_array($pid, $favs, true) ? 1 : 0;
-			$rows[$k]['image'] = $showImages ? $this->getThumbnailUrl($pid, (string) $r['ref']) : '';
+			if ($showImages) {
+				$urls = $this->getThumbnailUrls($pid, (string) $r['ref']);
+				// image paints immediately; image_hi is the better file to swap in.
+				$rows[$k]['image'] = $urls['mini'];
+				$rows[$k]['image_hi'] = $urls['small'];
+			} else {
+				$rows[$k]['image'] = '';
+				$rows[$k]['image_hi'] = '';
+			}
 			$rows[$k]['paths'] = $paths;
 		}
 	}
@@ -1298,15 +1306,32 @@ class DoliCatalogBrowser
 	 * @param  string $ref       Product ref
 	 * @return string            viewimage.php URL or ''
 	 */
-	public function getThumbnailUrl($productId, $ref)
+	/**
+	 * Both thumbnail sizes for a product, plus the original as a last resort.
+	 *
+	 * Dolibarr generates exactly two: _mini at 128x72 and _small at 480x270.
+	 * Picking whichever sorted first meant always taking _mini, which is fine
+	 * behind a 38px row thumbnail and visibly upscaled behind a 220x132 card.
+	 *
+	 * Both are returned so the caller can choose by the size it actually renders
+	 * at, and so a large surface can paint the small file immediately and swap in
+	 * the better one when it arrives.
+	 *
+	 * @param  int    $productId Product id
+	 * @param  string $ref       Product ref
+	 * @return array{mini:string,small:string} URLs, empty strings when absent
+	 */
+	public function getThumbnailUrls($productId, $ref)
 	{
 		global $conf;
 
 		include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 
+		$empty = array('mini' => '', 'small' => '');
+
 		$base = $conf->product->dir_output;
 		if (empty($base)) {
-			return '';
+			return $empty;
 		}
 
 		if (getDolGlobalInt('PRODUCT_USE_OLD_PATH_FOR_PHOTO')) {
@@ -1317,22 +1342,74 @@ class DoliCatalogBrowser
 
 		$dir = $base.'/'.$relative;
 		if (!is_dir($dir)) {
+			return $empty;
+		}
+
+		$thumbs = dol_dir_list($dir.'/thumbs', 'files', 0, '\.(jpg|jpeg|png|gif|webp)$', '', 'name', SORT_ASC, 0, 1);
+
+		$mini = '';
+		$small = '';
+		foreach ($thumbs as $t) {
+			if ($mini === '' && strpos($t['name'], '_mini.') !== false) {
+				$mini = $relative.'/thumbs/'.$t['name'];
+			}
+			if ($small === '' && strpos($t['name'], '_small.') !== false) {
+				$small = $relative.'/thumbs/'.$t['name'];
+			}
+		}
+
+		// No generated thumbnails: fall back to the original for both, rather than
+		// showing nothing.
+		if ($mini === '' && $small === '') {
+			$originals = dol_dir_list($dir, 'files', 0, '\.(jpg|jpeg|png|gif|webp)$', '', 'name', SORT_ASC, 0, 1);
+			if (empty($originals)) {
+				return $empty;
+			}
+			$mini = $small = $relative.'/'.$originals[0]['name'];
+		}
+
+		// Only one size present: use it for both so nothing renders blank.
+		if ($mini === '') {
+			$mini = $small;
+		}
+		if ($small === '') {
+			$small = $mini;
+		}
+
+		return array('mini' => $this->imageUrl($mini), 'small' => $this->imageUrl($small));
+	}
+
+	/**
+	 * Wrap a document-relative product image path as a viewimage URL.
+	 *
+	 * @param  string $file Path relative to the product image directory
+	 * @return string       URL, or '' when the path is empty
+	 */
+	private function imageUrl($file)
+	{
+		global $conf;
+
+		if ($file === '') {
 			return '';
 		}
 
-		// Prefer a generated thumbnail; fall back to the original image.
-		$thumbs = dol_dir_list($dir.'/thumbs', 'files', 0, '\.(jpg|jpeg|png|gif|webp)$', '', 'name', SORT_ASC, 0, 1);
-		if (!empty($thumbs)) {
-			$file = $relative.'/thumbs/'.$thumbs[0]['name'];
-		} else {
-			$originals = dol_dir_list($dir, 'files', 0, '\.(jpg|jpeg|png|gif|webp)$', '', 'name', SORT_ASC, 0, 1);
-			if (empty($originals)) {
-				return '';
-			}
-			$file = $relative.'/'.$originals[0]['name'];
-		}
-
 		return DOL_URL_ROOT.'/viewimage.php?modulepart=product&entity='.((int) $conf->entity).'&file='.urlencode($file);
+	}
+
+	/**
+	 * Smallest thumbnail for a product.
+	 *
+	 * Retained for callers that render at row size, where _mini is correct.
+	 *
+	 * @param  int    $productId Product id
+	 * @param  string $ref       Product ref
+	 * @return string            URL or ''
+	 */
+	public function getThumbnailUrl($productId, $ref)
+	{
+		$urls = $this->getThumbnailUrls($productId, $ref);
+
+		return $urls['mini'];
 	}
 
 	/**

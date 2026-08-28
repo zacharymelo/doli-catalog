@@ -1101,3 +1101,11 @@ body.dolicatalog-open .ui-autocomplete {
 	padding: 2px 9px;
 	cursor: help;
 }
+
+/* While the 128px thumbnail stands in for the 480px one, soften it slightly so
+   the upscale reads as "still loading" rather than as a bad image. The class is
+   removed the moment the larger file has decoded. */
+.dcb-card img.dcb-lowres {
+	filter: blur(1px);
+	transition: filter 0.15s ease-out;
+}
