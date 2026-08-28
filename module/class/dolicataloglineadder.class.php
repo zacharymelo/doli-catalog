@@ -322,7 +322,8 @@ class DoliCatalogLineAdder
 				// addline($desc, $pu_ht, $qty, $txtva, $txlocaltax1, $txlocaltax2, $fk_product,
 				//         $remise_percent, $price_base_type, $pu_ttc, $info_bits, $type, $rang,
 				//         $special_code, $fk_parent_line, $fk_fournprice, $pa_ht, $label,
-				//         $date_start, $date_end, $array_options, $fk_unit)
+				//         $date_start, $date_end, $array_options, $fk_unit, $origin,
+				//         $origin_id, $pu_ht_devise)
 				return $object->addline(
 					$desc,
 					$p['pu_ht'],
@@ -345,14 +346,18 @@ class DoliCatalogLineAdder
 					'',
 					'',
 					array(),
-					$fk_unit
+					$fk_unit,
+					'',
+					0,
+					$p['pu_ht_devise']
 				);
 
 			case 'commande':
 				// addline($desc, $pu_ht, $qty, $txtva, $txlocaltax1, $txlocaltax2, $fk_product,
 				//         $remise_percent, $info_bits, $fk_remise_except, $price_base_type, $pu_ttc,
 				//         $date_start, $date_end, $type, $rang, $special_code, $fk_parent_line,
-				//         $fk_fournprice, $pa_ht, $label, $array_options, $fk_unit)
+				//         $fk_fournprice, $pa_ht, $label, $array_options, $fk_unit,
+				//         $origin, $origin_id, $pu_ht_devise)
 				return $object->addline(
 					$desc,
 					$p['pu_ht'],
@@ -376,7 +381,10 @@ class DoliCatalogLineAdder
 					0,
 					$label,
 					array(),
-					$fk_unit
+					$fk_unit,
+					'',
+					0,
+					$p['pu_ht_devise']
 				);
 
 			case 'facture':
@@ -384,7 +392,8 @@ class DoliCatalogLineAdder
 				//         $remise_percent, $date_start, $date_end, $fk_code_ventilation, $info_bits,
 				//         $fk_remise_except, $price_base_type, $pu_ttc, $type, $rang, $special_code,
 				//         $origin, $origin_id, $fk_parent_line, $fk_fournprice, $pa_ht, $label,
-				//         $array_options, $situation_percent, $fk_prev_id, $fk_unit)
+				//         $array_options, $situation_percent, $fk_prev_id, $fk_unit,
+				//         $pu_ht_devise)
 				return $object->addline(
 					$desc,
 					$p['pu_ht'],
@@ -413,7 +422,8 @@ class DoliCatalogLineAdder
 					array(),
 					100,
 					0,
-					$fk_unit
+					$fk_unit,
+					$p['pu_ht_devise']
 				);
 
 			case 'supplier_proposal':
@@ -525,6 +535,50 @@ class DoliCatalogLineAdder
 	}
 
 	/**
+	 * A fixed foreign-currency price for this product, if one is configured.
+	 *
+	 * The Fixed Price module pins a selling price per currency, overriding the
+	 * exchange-rate conversion. It applies that by injecting into $_POST from a
+	 * doActions hook on the proposal, order and invoice card pages - a path this
+	 * picker never takes, because it calls addline() from its own endpoint rather
+	 * than going through a card page. Without this lookup its prices would simply
+	 * not apply to anything added from the catalogue.
+	 *
+	 * Reads its table directly and only when the module is enabled, so nothing
+	 * here depends on it being installed.
+	 *
+	 * @param  CommonObject $object  Document being added to
+	 * @param  Product      $product Product being added
+	 * @return float                 Fixed price in the document currency, or 0
+	 */
+	private function fixedCurrencyPrice($object, $product)
+	{
+		global $conf;
+
+		if (!isModEnabled('fixedprice')) {
+			return 0;
+		}
+		if (empty($object->multicurrency_code) || $object->multicurrency_code === $conf->currency) {
+			return 0;
+		}
+
+		$sql = "SELECT fixed_price_ht FROM ".MAIN_DB_PREFIX."product_fixed_price";
+		$sql .= " WHERE fk_product = ".((int) $product->id);
+		$sql .= " AND multicurrency_code = '".$this->db->escape($object->multicurrency_code)."'";
+		$sql .= " AND enabled = 1";
+		$sql .= " AND entity = ".((int) $conf->entity);
+
+		$resql = $this->db->query($sql);
+		if (!$resql || $this->db->num_rows($resql) === 0) {
+			return 0;
+		}
+		$o = $this->db->fetch_object($resql);
+		$this->db->free($resql);
+
+		return (float) $o->fixed_price_ht;
+	}
+
+	/**
 	 * Baseline pricing structure.
 	 *
 	 * @param  Product $product Product
@@ -544,6 +598,9 @@ class DoliCatalogLineAdder
 			'info_bits' => 0,
 			'fk_fournprice' => 0,
 			'ref_supplier' => '',
+			// Foreign-currency unit price. 0 means "derive it from the document
+			// rate", which is what core does; a non-zero value pins it.
+			'pu_ht_devise' => 0,
 		);
 	}
 
@@ -648,6 +705,10 @@ class DoliCatalogLineAdder
 			$tva_npr = 0;
 		}
 		$p['info_bits'] = $tva_npr ? 1 : 0;
+
+		// A pinned currency price overrides the converted one, matching what the
+		// Fixed Price module does on the card pages.
+		$p['pu_ht_devise'] = $this->fixedCurrencyPrice($object, $product);
 
 		$p['desc'] = $this->buildDescription($product);
 

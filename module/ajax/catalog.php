@@ -166,8 +166,12 @@ switch ($action) {
 		// A term matching a category name is offered as a folder too, so the
 		// search doubles as a shortcut into that branch.
 		$matchedCategories = $catalog->searchCategories($search, $searchFilters);
-		foreach ($matchedCategories as $k => $mc) {
-			$matchedCategories[$k]['count'] = $catalog->countProductsInCategory($mc['id'], $filters);
+		// Not $mc: this file runs at global scope and Dolibarr keeps the
+		// MultiCompany instance in a global of that name. Shadowing it makes
+		// getEntity() fall back to its non-MultiCompany branch and silently
+		// return the wrong entity list.
+		foreach ($matchedCategories as $k => $matched) {
+			$matchedCategories[$k]['count'] = $catalog->countProductsInCategory($matched['id'], $filters);
 		}
 
 		dolicatalog_json(array(

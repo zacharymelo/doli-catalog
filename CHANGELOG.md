@@ -14,6 +14,37 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.8.0] - 2026-08-24
+
+### Fixed
+
+- **Fixed multicurrency prices were ignored for anything added from the
+  catalogue.** The Fixed Price module pins a selling price per currency by
+  injecting into `$_POST` from a `doActions` hook on the proposal, order and
+  invoice card pages. The picker adds lines from its own endpoint and never
+  loads a card page, so that hook never fired and pinned prices simply did not
+  apply — lines silently fell back to the exchange-rate conversion.
+
+  The line adder now looks the pinned price up itself and passes it as the
+  line's foreign-currency unit price. Verified across proposals, orders and
+  invoices.
+
+  The lookup runs only when that module is enabled and the document is in a
+  foreign currency, and reads its table directly, so nothing here depends on it
+  being installed. With it disabled, lines convert at the document rate exactly
+  as before.
+
+  Orders get the pinned price directly rather than the back-calculated base
+  price that module derives for them. That back-calculation exists because the
+  order *card page* has no foreign-price branch; calling `addline()` directly
+  has no such limit, so the pinned figure is used as-is.
+
+- **`$mc` was shadowed in the catalog endpoint.** `ajax/catalog.php` runs at
+  global scope and used `$mc` as a loop variable, which is the name Dolibarr
+  keeps the MultiCompany instance under. `getEntity()` checks `is_object($mc)`,
+  so on a MultiCompany install the loop silently pushed it onto the
+  non-MultiCompany path and returned the wrong entity list.
+
 ## [1.7.3] - 2026-08-24
 
 ### Fixed
@@ -469,6 +500,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.8.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.0
 [1.7.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.3
 [1.7.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.2
 [1.7.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.7.1
