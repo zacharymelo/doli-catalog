@@ -10,7 +10,7 @@ Read this before changing how the picker injects itself or adding a document typ
 
 Doli Catalog has no business object of its own. There is no card page, no list page, no numbering module, no trigger. It is three things:
 
-1. **A hook class** that injects a button and a modal shell into pages Dolibarr already renders.
+1. **A hook class** that injects a button and a modal shell into pages Dolibarr already renders, and a category strip above the native product list.
 2. **Three AJAX endpoints** that feed the modal and write the result back.
 3. **Two small tables** holding per-user favourites and pick history.
 
@@ -18,19 +18,23 @@ Everything the picker displays is read from native tables (`llx_categorie`, `llx
 
 ```
 module/
-  core/modules/modDoliCatalog.class.php   module descriptor: hooks, rights, settings, tables
+  core/modules/modDoliCatalog.class.php   descriptor: hooks, menu, rights, settings, tables
   class/
-    actions_dolicatalog.class.php         hook handlers — the only entry point from Dolibarr
-    dolicatalogbrowser.class.php          read-only catalog queries (tree, search, favourites)
+    actions_dolicatalog.class.php         hook handlers: the picker, and the product list strip
+    dolicatalogbrowser.class.php          read-only queries: tree, search, facets, thumbnails
     dolicataloglineadder.class.php        price resolution + per-type addline() adapters
   ajax/
-    catalog.php                           GET  — tree, search, favourites, recent
+    catalog.php                           GET  — tree, search, facets, favourites, recent
     addlines.php                          POST — append picked items as document lines
     favorite.php                          POST — toggle a favourite
     debug.php                             admin diagnostics, gated by DOLICATALOG_DEBUG_MODE
-  js/dolicatalog.js                       the modal, built with plain DOM APIs
-  css/dolicatalog.css                     scoped under .dolicatalog-*
-  lib/dolicatalog.lib.php                 admin page helpers + version lookup
+  browse.php                              standalone catalogue page (its own left-menu entry)
+  js/
+    dolicatalog.js                        the in-document picker modal
+    dolicatalog-browse.js                 the catalogue page
+    dolicatalog-listtree.js               the product list category strip
+  css/dolicatalog.css                     scoped under .dolicatalog-* and .dcb-*
+  lib/dolicatalog.lib.php                 admin rows, asset versioning, stylesheet tag
 ```
 
 ---
@@ -168,6 +172,90 @@ docker exec <container> sh -c "grep -n 'public function addline' /var/www/html/c
 
 ---
 
+## One filter, two consumers
+
+`buildProductFilterSql()` returns the JOIN and WHERE that define which products a
+set of filters selects. Both `listProducts()` and `getFacets()` use it.
+
+That sharing is not tidiness. A facet count is a promise about what selecting it
+will show, so the count and the listing have to be derived from the same
+conditions — two hand-maintained copies would eventually disagree, and the
+symptom would be a number that lies rather than an error. The supplier
+restriction is expressed as an `EXISTS` rather than a JOIN for the same reason:
+so the filtering condition can be reused without dragging the price column along
+with it.
+
+Display-only joins (warehouse stock, the supplier price column) stay in
+`listProducts()`. Nothing that changes *which* rows match belongs there.
+
+## Facets
+
+Categories double as tags, so a product in a broad category usually carries
+cross-cutting ones. `getFacets()` returns those with counts.
+
+Two decisions worth keeping:
+
+- **Counts include the current selection.** Tags AND together, so the number
+  beside an unselected tag is what remains after adding it, and a tag that would
+  empty the list has no rows to group and disappears. Under OR semantics the
+  selection would have to be *excluded* instead — the two follow from each other,
+  so changing one means changing the other.
+- **Selected facets are always returned**, even at zero and even past the cap,
+  or a selection could not be undone.
+
+The cap is `DOLICATALOG_MAX_FACETS` (default 200). It cuts by rank, not by count,
+which means whichever count sits at the boundary looks like a minimum threshold
+to whoever is using it — so when it bites, the response reports how many were
+dropped rather than silently omitting them.
+
+## Archived products
+
+`DOLICATALOG_ARCHIVED_CATEGORY` names a category meaning "withdrawn". The
+exclusion lives in the shared filter, so it applies to the picker, the browse
+page, search, favourites and recents by construction rather than wherever someone
+remembered it. `countProductsInCategory()` carries it too, or a folder would
+advertise items the listing then refuses to show.
+
+The category itself is excluded from the folder listings as well
+(`archivedCategoryClause()`), otherwise it opens onto nothing. Two callers pass
+`includeArchived` deliberately: `getCategoryPathMap()` feeds the setup picker, so
+hiding it there would make the setting impossible to configure; and the product
+list strip drives Dolibarr's own list, which shows archived products like any
+other.
+
+## Thumbnails
+
+Dolibarr generates two per photo: `_mini` (128x72) and `_small` (480x270).
+`getThumbnailUrls()` returns both, chosen by suffix rather than by sort order —
+listing the directory and taking the first entry silently always yielded `_mini`,
+which is right behind a 38px row and a 2x upscale behind a 220x132 card.
+
+The catalogue page paints `_mini` and swaps in `_small` once decoded, so a lazily
+loaded grid fills immediately instead of staying blank. The picker uses `_mini`
+alone; there is nothing to gain from a larger file at that size.
+
+## Interoperating with card-page modules
+
+Lines are created through the document's own `addline()`, so anything hanging off
+Dolibarr's line triggers keeps working.
+
+Card-page hooks do not. The picker adds lines from `ajax/addlines.php` and never
+loads a card page, so a module that works by intercepting `doActions` on
+`propalcard` / `ordercard` / `invoicecard` will never see these lines. That is not
+a bug in either module; it is what happens when line creation moves off the page.
+
+The Fixed Price module is handled explicitly in `DoliCatalogLineAdder`. It pins a
+selling price per currency by injecting into `$_POST` from such a hook. We look
+that price up ourselves and, importantly, **derive the base-currency price back
+from it at the document rate** rather than only setting the foreign price.
+Setting only the foreign price leaves the line claiming an exchange rate of its
+own, and every base-currency figure downstream describes a different sale. The
+back-calculation is maintaining an invariant, not working around a limitation —
+that distinction was got wrong once already.
+
+Any other module of yours that works through card-page hooks needs the same
+treatment, and this is where it goes.
+
 ## Security model
 
 The picker never widens what a user can already do.
@@ -194,4 +282,11 @@ Every catalog query is entity-scoped with `getEntity()`, so the module is multi-
 - **`$conf` is stale after `activateModule()` in the same process.** Call `$conf->setValues($db)` before reading the new constants, or you will read the pre-activation state and conclude the activation failed.
 - **`$conf->modules_parts['hooks']` is keyed by module name**, not by context. Its value is that module's list of contexts.
 - **Core's `Product::updatePrice()` overwrites `llx_product.price`** when writing a price level. A "wrong" base price after touching multiprice is usually core, not this module.
+- **`$mc` is Dolibarr's MultiCompany global.** Files under `ajax/` run at global
+  scope, so using it as a local variable there puts `getEntity()` on its
+  non-MultiCompany branch and returns the wrong entity list. Silent on a
+  single-entity install.
+- **Constants declare `deleteonunactive` at index 6.** Set it to 0. A 1 there
+  means Dolibarr deletes the setting whenever the module is disabled, which is
+  exactly what upgrading requires.
 - **A form input named `action` shadows `form.action`** in JavaScript. `document.forms[x].action` returns the input element, not the URL. Use `getAttribute('action')`.

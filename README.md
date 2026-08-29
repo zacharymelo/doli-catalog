@@ -11,8 +11,12 @@ It reads native tables only. No core file is modified.
 ## Contents
 
 - [What it does](#what-it-does)
+- [Category filter on the product list](#category-filter-on-the-product-list)
+- [The catalogue page](#the-catalogue-page)
+- [Archived products](#archived-products)
 - [Where it appears](#where-it-appears)
 - [How items are priced](#how-items-are-priced)
+- [Working alongside other modules](#working-alongside-other-modules)
 - [Requirements](#requirements)
 - [Install](#install)
 - [Configuration](#configuration)
@@ -71,6 +75,21 @@ Selecting them narrows the list, and **selecting several returns only products
 carrying all of them**. Counts show what you would be left with after adding a
 tag, so a tag that would empty the list is not offered.
 
+## Archived products
+
+Set **Archived category** in setup to a category meaning "withdrawn". Products in
+it, or in any category beneath it, are hidden from the catalogue page, the
+picker, search, favourites and recents. Folder counts exclude them, and the
+archived category itself is hidden too, so it cannot be opened onto an empty
+list.
+
+A **Show archived** checkbox on the catalogue page brings them back when needed.
+It only appears once a category has been configured.
+
+The product list filter strip is the exception: it drives Dolibarr's own list,
+which shows archived products like any other, so hiding the folder there would
+leave the strip disagreeing with the list beneath it.
+
 ## Where it appears
 
 | Document | Hook context | Catalog mode |
@@ -116,6 +135,25 @@ VAT then resolves through `get_default_tva()` and `get_default_npr()`, plus loca
 
 ---
 
+## Working alongside other modules
+
+Lines are created by calling the document's own `addline()`, so anything hanging
+off Dolibarr's line triggers keeps working. Card-page hooks are a different
+matter: the picker adds lines from its own endpoint and never loads a card page,
+so a module that works by intercepting `doActions` there will not see these
+lines.
+
+One such case is handled explicitly. The **Fixed Price** module pins a selling
+price per currency by injecting into `$_POST` from a card-page hook. The line
+adder looks that pinned price up itself and applies it, deriving the
+base-currency price back from it at the document rate so the two figures agree —
+the same invariant that module's own back-calculation maintains. The lookup runs
+only when that module is enabled and the document is in a foreign currency, and
+reads its table directly, so nothing here depends on it being installed.
+
+If another module of yours works through card-page hooks, it will need the same
+treatment. `DoliCatalogLineAdder` is where that goes.
+
 ## Requirements
 
 - Dolibarr **19.0+** (developed and verified against 23.0)
@@ -140,7 +178,11 @@ Then in Dolibarr: **Home → Setup → Modules → Deploy external module**, upl
 
 ### Upgrading
 
-Default settings are written when the module is **activated**. If a new version adds a setting, disable and re-enable the module once so the new defaults are stored. Note that disabling removes the module's stored settings — this is standard Dolibarr behaviour for any module that declares defaults, so record any customised values first.
+Default settings are written when the module is **activated**. If a new version adds a setting, disable and re-enable the module once so the new default is stored — menus and hook contexts are also only written at activation, so the same cycle applies to those.
+
+Settings survive that cycle. A missing constant is seeded with its default on activation, and an existing value is never overwritten.
+
+> Versions before 1.7.2 declared their constants as delete-on-deactivate, so disabling the module discarded its configuration. Check the setup page once after upgrading from an earlier build.
 
 ---
 
@@ -158,6 +200,7 @@ Default settings are written when the module is **activated**. If a new version 
 | Show service duration | on | Duration column for items of type Service |
 | Hide empty categories | off | Suppress folders whose count is zero |
 | Trigger button icon | `fa-th-large` | Font Awesome class on the button |
+| Category filter on product list | off | Adds a category strip above Dolibarr's own product list |
 
 ### Behaviour
 
@@ -168,7 +211,10 @@ Default settings are written when the module is **activated**. If a new version 
 | Maximum rows | 50 | Rows per query before the list is truncated (1–500) |
 | Recent items kept | 12 | History depth per user |
 | Default quantity | 1 | Pre-filled quantity on selection |
-| Root categories | empty | Comma-separated category ids to show at the top level. Empty means every top-level category. |
+| Root categories | empty | Categories shown at the top level. Empty means every top-level category. Chosen from a picker. |
+| Attribute roots | empty | Categories whose children name an attribute, used to group tag filters. Chosen from a picker. |
+| Maximum tag filters | 200 | Tag filters offered before the list is cut, most used first (10–500) |
+| Archived category | none | Products in this category, or beneath it, are hidden from the catalogue along with the category itself |
 | Debug mode | off | Exposes `ajax/debug.php` |
 
 Numeric settings are clamped on save, and the setup page writes only its own allowlisted constants.

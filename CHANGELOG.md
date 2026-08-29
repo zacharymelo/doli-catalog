@@ -14,6 +14,27 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
 
+## [1.8.3] - 2026-08-24
+
+### Documentation
+
+- **Settings tables were four short and one wrong.** Archived category, Maximum
+  tag filters, Attribute roots and the product list filter were undocumented,
+  and Root categories was still described as "comma-separated category ids"
+  after it became a picker.
+- **Upgrade guidance was out of date**, still warning that disabling the module
+  discards its settings. That stopped being true in 1.7.2; the note now says so
+  and flags the one-time loss for anyone coming from an earlier build.
+- Added sections on **archived products** and on **working alongside other
+  modules**, the latter covering why card-page hooks do not see lines added by
+  the picker and how the Fixed Price integration handles it.
+- `docs/ARCHITECTURE.md` refreshed: the file tree omitted the catalogue page,
+  the list strip and three of the four scripts, and it still described hooks as
+  the only entry point. Added the shared filter builder, facets, archived
+  products, thumbnail selection and card-page interoperation, plus two gotchas
+  worth not rediscovering — the `$mc` MultiCompany global, and the
+  `deleteonunactive` flag.
+
 ## [1.8.2] - 2026-08-24
 
 ### Fixed
@@ -542,6 +563,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.8.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.3
 [1.8.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.2
 [1.8.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.1
 [1.8.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.0
