@@ -234,6 +234,49 @@ The catalogue page paints `_mini` and swaps in `_small` once decoded, so a lazil
 loaded grid fills immediately instead of staying blank. The picker uses `_mini`
 alone; there is nothing to gain from a larger file at that size.
 
+## Back button on the catalogue page
+
+Entirely client side, in `dolicatalog-browse.js`. No PHP, no schema, no server
+round trip beyond the one the navigation already makes.
+
+`state` is the whole of it: view, category, search, type, warehouse, archived,
+facets, facetsAny, offset. `encodeState()` writes those to a query string and
+`decodeState()` reads them back, so one string is the view. `breadcrumb` and
+`seq` are excluded — the endpoint rebuilds the trail from the category, and the
+sequence number only means anything within one page's lifetime.
+
+Every navigation writes that string to the URL fragment with `pushState`, which
+is what gives Back and Forward something to walk. `popstate` decodes the fragment
+back into `state` and reloads with `history: 'none'`, since the address bar is
+already right. Loads that change nothing about the view — collapsing the refine
+panel, redrawing after a star is removed — pass `history: 'replace'` so they do
+not become places to go back to. Editing a term already being searched replaces
+too, or every debounced keystroke would need undoing one at a time.
+
+Deliberately not persistent. A bare URL opens the root; there is no restore from
+a previous visit, which would put people somewhere they did not ask to be.
+
+`decodeState()` treats its input as hostile — a fragment is user-editable, and
+someone will eventually hand-edit one. Unknown views, non-numeric ids and
+negative offsets fall back to defaults rather than reaching the endpoint, which
+is only a second line of defence behind `GETPOSTINT` and `array:int`.
+
+`syncControls()` moves the toolbar to match a state arrived at through history.
+Restoring a filter without moving the control that owns it leaves the page
+contradicting itself, which is worse than not restoring it. The warehouse select
+is the awkward one: the warehouse in the fragment may have been deleted or belong
+to another entity, so the code falls back to the option whose value is not a
+warehouse id, rather than to a fixed position the core select owns.
+
+Scroll offsets are the small half — landing at the top of a long list is the
+other thing Back normally spares you on an ordinary page. They live in a capped
+`sessionStorage` map keyed by the same encoded state, and deliberately not in the
+fragment, since a link that jumped someone 800px down a list would be a strange
+thing to send. They are filed against `renderedKey`, the view actually on screen,
+not against `state`: between a click and its response `state` already describes
+where we are going, and replacing the list with one line of "Loading…" makes the
+page jump, which would otherwise be recorded against the wrong view.
+
 ## Interoperating with card-page modules
 
 Lines are created through the document's own `addline()`, so anything hanging off

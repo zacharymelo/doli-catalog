@@ -718,12 +718,16 @@ class DoliCatalogLineAdder
 		// That is why the other module back-calculates rather than simply
 		// overriding, and it has to hold here too.
 		$fixed = $this->fixedCurrencyPrice($object, $product);
-		if ($fixed > 0) {
-			$rate = (float) $object->multicurrency_tx;
-			if ($rate <= 0) {
-				$rate = 1;
-			}
+		$rate = (float) $object->multicurrency_tx;
 
+		// A pin can only be applied when there is a usable rate to derive the
+		// base price from. Treating a missing rate as 1 would assert that the
+		// pinned foreign amount and the base amount are the same number, which
+		// is a quieter kind of wrong than falling back to the product's own
+		// price. A rate of 0 means the document or the currency setup is
+		// broken - most often a duplicate currency row with no rate attached -
+		// and that should be fixed rather than papered over here.
+		if ($fixed > 0 && $rate > 0) {
 			$p['pu_ht'] = price2num($fixed / $rate, 'MU');
 			$p['pu_ttc'] = 0;
 			$p['price_base_type'] = 'HT';

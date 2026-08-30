@@ -66,14 +66,21 @@ onboarding staff who know the categories but not the product codes.
 Searching from this page always searches the whole catalogue, even while inside
 a folder.
 
-Inside a category, the tags its products also carry appear as chips with counts,
-grouped under the attribute that names them when **Attribute roots** is
-configured — nest values under a category per attribute (`Attribute / Thread
-Size / 1/4 in.`) and they group and order themselves from the tree. Each
-attribute carries an **All / Any** switch once two of its values are selected.
-Selecting them narrows the list, and **selecting several returns only products
-carrying all of them**. Counts show what you would be left with after adding a
-tag, so a tag that would empty the list is not offered.
+### The Back button
+
+Navigating the catalogue never reloads the page, so without help the Back button
+would skip the whole visit. It is wired up instead: each move writes the view
+into the URL, so Back steps out of a folder, undoes a tag or leaves a search, and
+Forward walks it again. Opening a product card and pressing Back returns you to
+the folder, tags and page you were on rather than to the top of the tree.
+
+Typing in the search box collapses into a single history entry, so one Back
+leaves the search rather than one per keystroke. The URL is also a link to the
+exact view, worth sending someone.
+
+Arriving at the catalogue with a plain link opens the top of the tree, as it
+always has. Nothing is carried over from a previous visit, and nothing is stored
+on the server.
 
 ## Archived products
 

@@ -8,11 +8,33 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The Back button now works on the catalogue page.** Browsing never reloads
+  the page, so Back used to skip the whole visit and leave the catalogue — a
+  look at a product card cost you the folder you were in and the walk back down
+  from the root to reach it again. Each move now writes the view into the URL, so
+  Back steps out of a folder, undoes a tag or leaves a search, Forward walks it
+  again, and returning from a product card lands on the folder, tags and page you
+  left. Search typing collapses into one history entry rather than one per
+  keystroke, and the URL doubles as a link to an exact view. Arriving with a
+  plain link still opens the top of the tree; nothing carries over between
+  visits, and nothing is stored on the server.
+
 - `tools/bulk-tag.php` — a standalone CLI maintenance script that bulk-assigns
   product categories from prefix/regex/label/supplier/type rules or a CSV
   mapping. Dry run by default, additive (never replaces a product's existing
   categories), idempotent, and transactional. Not shipped in the installable
   zip. See `tools/README.md`.
+
+## [1.8.4] - 2026-08-24
+
+### Fixed
+
+- **A pinned currency price is no longer applied when the document has no usable
+  exchange rate.** The base price was previously derived with the rate treated
+  as 1, which asserts that the pinned foreign amount and the base amount are the
+  same number. That is a quieter kind of wrong than falling back to the
+  product's own price, and it hides a broken currency setup — most often a
+  duplicate currency row with no rate attached — rather than leaving it visible.
 
 ## [1.8.3] - 2026-08-24
 
@@ -563,6 +585,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.8.4]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.4
 [1.8.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.3
 [1.8.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.2
 [1.8.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.1

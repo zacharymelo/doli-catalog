@@ -77,6 +77,317 @@
 		}
 	}
 
+	// ------------------------------------------------------- history handling
+
+	/*
+	 * Navigating the catalogue never leaves the page, so without help the Back
+	 * button skips the whole visit and leaves the page it lands on: a look at a
+	 * product card costs you the folder you were in, and the walk back down from
+	 * the root to reach it again.
+	 *
+	 * Every navigation therefore writes the state into the URL fragment. Back
+	 * then walks the catalogue the way it walks any other site — out of a
+	 * category, back through a tag, out of a search — and Forward walks it again.
+	 * Returning from a product card lands in the folder you left.
+	 *
+	 * This is history handling and nothing more. Arriving at browse.php with a
+	 * bare URL opens the root, as it always has; nothing is resumed from a
+	 * previous visit, and nothing is stored on the server.
+	 *
+	 * Scroll offsets ride along per view, since landing at the top of a long list
+	 * is the other half of what Back normally does for you on an ordinary page.
+	 * They stay out of the fragment: a link that jumped someone 800px down a list
+	 * would be a strange thing to send them.
+	 */
+
+	/** Scroll offsets, keyed by the same string the fragment carries. */
+	var SCROLL_KEY = 'dolicatalog.browse.scroll';
+
+	/** How many views keep an offset before the oldest is dropped. */
+	var SCROLL_KEEP = 20;
+
+	var VIEWS = ['browse', 'search', 'favorites', 'recent'];
+
+	/**
+	 * Read a JSON value out of session storage.
+	 *
+	 * @param  {string} key Storage key
+	 * @return {*}          Parsed value, or null when absent or unreadable
+	 */
+	function stored(key) {
+		try {
+			var raw = window.sessionStorage.getItem(key);
+			return raw ? JSON.parse(raw) : null;
+		} catch (e) {
+			// Private browsing refuses storage, and a truncated value throws on
+			// parse. Either way there is simply nothing to restore.
+			return null;
+		}
+	}
+
+	/**
+	 * Write a JSON value to session storage.
+	 *
+	 * @param  {string} key   Storage key
+	 * @param  {*}      value Anything JSON can carry
+	 * @return {void}
+	 */
+	function store(key, value) {
+		try {
+			window.sessionStorage.setItem(key, JSON.stringify(value));
+		} catch (e) {
+			// Remembering the place is a convenience, never a requirement.
+		}
+	}
+
+	/**
+	 * The navigable state, as a query string.
+	 *
+	 * breadcrumb and seq are left out: the endpoint rebuilds the first from the
+	 * category, and the second only means anything within one page's lifetime.
+	 *
+	 * @return {string} Encoded state, empty at an untouched root
+	 */
+	function encodeState() {
+		var q = new URLSearchParams();
+		var listed = (state.view === 'browse' || state.view === 'search');
+
+		if (state.view !== 'browse') { q.set('v', state.view); }
+		if (listed && state.category > 0) { q.set('c', state.category); }
+		if (state.search) { q.set('q', state.search); }
+		if (state.type === 0 || state.type === 1) { q.set('t', state.type); }
+		if (state.warehouse > 0) { q.set('w', state.warehouse); }
+		if (state.archived) { q.set('a', '1'); }
+		if (state.facets.length) { q.set('f', state.facets.join('.')); }
+		if (state.facetsAny.length) { q.set('fa', state.facetsAny.join('.')); }
+		if (state.offset > 0) { q.set('o', state.offset); }
+
+		return q.toString();
+	}
+
+	/**
+	 * Category ids from a dot-separated list, deduplicated.
+	 *
+	 * @param  {string} raw Encoded list
+	 * @return {Array}      Positive integers
+	 */
+	function idList(raw) {
+		var out = [];
+		String(raw || '').split('.').forEach(function (part) {
+			var n = parseInt(part, 10);
+			if (n > 0 && out.indexOf(n) === -1) { out.push(n); }
+		});
+		return out;
+	}
+
+	/**
+	 * Read a state back.
+	 *
+	 * Everything is treated as hostile: a fragment is user-editable and a stored
+	 * value can outlive the shape that wrote it. Anything unrecognised falls back
+	 * to its default rather than reaching the endpoint.
+	 *
+	 * @param  {string} encoded Query string from encodeState()
+	 * @return {Object}         State fields
+	 */
+	function decodeState(encoded) {
+		var q = new URLSearchParams(encoded || '');
+
+		var view = q.get('v') || 'browse';
+		if (VIEWS.indexOf(view) === -1) { view = 'browse'; }
+
+		var search = (q.get('q') || '').trim();
+		// The two have to agree. A search view with no term shows nothing, and a
+		// term anywhere else would sit in the box being ignored.
+		if (view === 'search' && !search) { view = 'browse'; }
+		if (view === 'browse' && search) { view = 'search'; }
+		if (view === 'favorites' || view === 'recent') { search = ''; }
+
+		var type = parseInt(q.get('t'), 10);
+		if (type !== 0 && type !== 1) { type = -1; }
+
+		var listed = (view === 'browse' || view === 'search');
+
+		return {
+			view: view,
+			search: search,
+			category: listed ? Math.max(0, parseInt(q.get('c'), 10) || 0) : 0,
+			type: type,
+			warehouse: Math.max(0, parseInt(q.get('w'), 10) || 0),
+			archived: q.get('a') === '1' ? 1 : 0,
+			facets: idList(q.get('f')),
+			facetsAny: idList(q.get('fa')),
+			offset: Math.max(0, parseInt(q.get('o'), 10) || 0)
+		};
+	}
+
+	/**
+	 * Adopt a decoded state, toolbar included.
+	 *
+	 * @param  {Object} next Fields from decodeState()
+	 * @return {void}
+	 */
+	function applyState(next) {
+		state.view = next.view;
+		state.category = next.category;
+		state.search = next.search;
+		state.type = next.type;
+		state.warehouse = next.warehouse;
+		state.archived = next.archived;
+		state.facets = next.facets;
+		state.facetsAny = next.facetsAny;
+		state.offset = next.offset;
+		syncControls();
+	}
+
+	/**
+	 * Point the toolbar at the current state.
+	 *
+	 * Restoring a filter without moving the control that owns it would leave the
+	 * page contradicting itself, which is worse than not restoring it at all.
+	 *
+	 * @return {void}
+	 */
+	function syncControls() {
+		var search = el('dcb-search');
+		if (search) { search.value = state.search; }
+
+		var type = el('dcb-type');
+		if (type) { type.value = String(state.type); }
+
+		var archived = el('dcb-archived');
+		if (archived) { archived.checked = !!state.archived; }
+
+		var wh = document.querySelector('[name="dcb_warehouse"]');
+		if (wh) {
+			if (state.warehouse > 0) { wh.value = String(state.warehouse); }
+
+			// The warehouse may have been deleted since, or belong to an entity
+			// this user cannot see, in which case the select refuses the value.
+			// Fall back to the option that means every warehouse — found by its
+			// value rather than its position, which the core select owns.
+			if (state.warehouse <= 0 || parseInt(wh.value, 10) !== state.warehouse) {
+				var all = Array.prototype.filter.call(wh.options, function (o) {
+					return !(parseInt(o.value, 10) > 0);
+				})[0];
+				if (all) { wh.value = all.value; }
+				// Follow the select rather than filter by something it cannot show.
+				state.warehouse = Math.max(0, parseInt(wh.value, 10) || 0);
+			}
+		}
+	}
+
+	/** @return {string} The URL fragment without its leading hash */
+	function fragment() {
+		var h = window.location.hash || '';
+		return h.charAt(0) === '#' ? h.slice(1) : h;
+	}
+
+	/** @return {number} Current vertical scroll offset */
+	function scrollNow() {
+		return Math.round(window.pageYOffset || document.documentElement.scrollTop || 0);
+	}
+
+	/**
+	 * The view currently on screen, empty while one is being fetched.
+	 *
+	 * Offsets are filed against this rather than against the live state: between
+	 * a click and its response the state already describes where we are going,
+	 * and replacing the list with one line of "Loading…" makes the page jump.
+	 * Recording that would file the wrong offset against the wrong view.
+	 */
+	var renderedKey = '';
+
+	/**
+	 * File the current scroll offset against the view on screen.
+	 *
+	 * @return {void}
+	 */
+	function rememberScroll() {
+		if (!renderedKey) { return; }
+
+		var map = stored(SCROLL_KEY);
+		if (!map || typeof map !== 'object') { map = {}; }
+
+		// Deleted before it is written so the freshest view sorts last and the
+		// stalest falls off the front once the map is full.
+		var key = renderedKey;
+		delete map[key];
+		map[key] = scrollNow();
+
+		var keys = Object.keys(map);
+		while (keys.length > SCROLL_KEEP) { delete map[keys.shift()]; }
+
+		store(SCROLL_KEY, map);
+	}
+
+	/**
+	 * The offset filed against a view.
+	 *
+	 * @param  {string} key Encoded state
+	 * @return {number}     Offset, 0 when none was kept
+	 */
+	function recallScroll(key) {
+		var map = stored(SCROLL_KEY);
+		if (!map || typeof map !== 'object') { return 0; }
+		return parseInt(map[key], 10) || 0;
+	}
+
+	/**
+	 * Put the window back where it was, once there is a list to scroll through.
+	 *
+	 * Cards reserve their image height, so the grid does not grow as thumbnails
+	 * arrive and a single frame after the render is enough to measure against.
+	 *
+	 * @param  {number} y Offset to restore; 0 or absent leaves the page alone
+	 * @return {void}
+	 */
+	function restoreScroll(y) {
+		if (!y) { return; }
+		window.requestAnimationFrame(function () { window.scrollTo(0, y); });
+	}
+
+	/**
+	 * Put the current state in the address bar.
+	 *
+	 * @param  {boolean} replace True to overwrite the current entry rather than
+	 *                           add one
+	 * @return {void}
+	 */
+	function writeUrl(replace) {
+		if (!window.history || !window.history.pushState) { return; }
+
+		var encoded = encodeState();
+		// An empty state drops the fragment entirely rather than leaving a bare
+		// hash behind, so the root keeps the URL it was linked with.
+		var url = encoded ? '#' + encoded : (window.location.pathname + window.location.search);
+
+		try {
+			window.history[replace ? 'replaceState' : 'pushState'](null, '', url);
+		} catch (e) {
+			// Some embeddings forbid history writes. The page still works.
+		}
+	}
+
+	/**
+	 * Go back to the top of the catalogue.
+	 *
+	 * The toolbar is left alone: the type, warehouse and archived choices are
+	 * visible, and the user made them on purpose.
+	 *
+	 * @return {void}
+	 */
+	function resetToRoot() {
+		state.view = 'browse';
+		state.category = 0;
+		state.search = '';
+		state.facets = [];
+		state.facetsAny = [];
+		state.offset = 0;
+		syncControls();
+		load();
+	}
+
 	// ------------------------------------------------------------------ data
 
 	function fetchCatalog() {
@@ -129,14 +440,7 @@
 		}
 
 		nav.appendChild(crumb(label('DoliCatalogRoot', 'Catalog'), function () {
-			state.view = 'browse';
-			state.category = 0;
-			state.facets = [];
-			state.facetsAny = [];
-			state.offset = 0;
-			el('dcb-search').value = '';
-			state.search = '';
-			load();
+			resetToRoot(false);
 		}, state.view === 'browse' && !state.category));
 
 		if (state.view === 'favorites' || state.view === 'recent') {
@@ -354,8 +658,9 @@
 			var next = !host.classList.contains('collapsed');
 			setFacetsCollapsed(next);
 			// Re-render rather than toggling a class, so the active-count badge
-			// and caret are rebuilt from one place.
-			load();
+			// and caret are rebuilt from one place. Nothing about the view has
+			// changed, so it must not land in history as somewhere to go back to.
+			load({ history: 'replace' });
 		});
 
 		host.appendChild(header);
@@ -593,13 +898,34 @@
 			if (!d.ok) { return; }
 			p.is_favorite = d.favorite;
 			button.classList.toggle('on', !!d.favorite);
-			if (state.view === 'favorites' && !d.favorite) { load(); }
+			// Unstarring from the favourites list drops it out of the list; the
+			// view itself has not changed, so it is a redraw, not a navigation.
+			if (state.view === 'favorites' && !d.favorite) { load({ history: 'replace' }); }
 		}).catch(function () { /* favouriting is not critical */ });
 	}
 
 	// ------------------------------------------------------------------ load
 
-	function load() {
+	/**
+	 * Fetch and render the current state.
+	 *
+	 * @param  {Object} [opts]         Options
+	 * @param  {string} [opts.history] 'push' to add a history entry (the default,
+	 *                                 since almost every call is a navigation),
+	 *                                 'replace' to overwrite the current one, or
+	 *                                 'none' when the address bar is already
+	 *                                 right — coming back through history
+	 * @param  {number} [opts.scroll]  Offset to restore once rendered
+	 * @return {void}
+	 */
+	function load(opts) {
+		opts = opts || {};
+
+		if (opts.history !== 'none') { writeUrl(opts.history === 'replace'); }
+
+		// Nothing on screen belongs to a view any more until the response lands.
+		renderedKey = '';
+
 		var host = el('dcb-results');
 		clear(host);
 		host.appendChild(make('div', 'dolicatalog-empty', label('DoliCatalogLoading', 'Loading…')));
@@ -627,27 +953,62 @@
 						: label('DoliCatalogBrowseEmpty', 'No product categories exist yet.'));
 				host.appendChild(make('div', 'dolicatalog-empty', msg));
 				clear(el('dcb-pager'));
-				return;
+			} else {
+				if (cats.length) { host.appendChild(renderFolders(cats)); }
+
+				// Between the two on purpose: below the folders you navigate with,
+				// above the items they narrow.
+				var facetRow = renderFacets(data.facets, data.facetsTruncated || 0);
+				if (facetRow) { host.appendChild(facetRow); }
+
+				if (prods.length) { host.appendChild(renderProducts(prods)); }
+
+				renderPager(data);
 			}
 
-			if (cats.length) { host.appendChild(renderFolders(cats)); }
-
-			// Between the two on purpose: below the folders you navigate with,
-			// above the items they narrow.
-			var facetRow = renderFacets(data.facets, data.facetsTruncated || 0);
-			if (facetRow) { host.appendChild(facetRow); }
-
-			if (prods.length) { host.appendChild(renderProducts(prods)); }
-
-			renderPager(data);
+			renderedKey = encodeState();
+			restoreScroll(opts.scroll);
 		}).catch(function () {
 			clear(host);
 			host.appendChild(make('div', 'dolicatalog-empty error', label('DoliCatalogError', 'Could not load the catalog.')));
 		});
 	}
 
+	/**
+	 * Decide which view the page opens on.
+	 *
+	 * A fragment is followed: it is the Back button returning to a view this page
+	 * put in the address bar, or a link someone was sent. A bare URL opens the
+	 * root, the same as it always has — arriving at the catalogue is not the same
+	 * as coming back to it, and nothing from a previous visit is reapplied here.
+	 *
+	 * @return {void}
+	 */
+	function start() {
+		var frag = fragment();
+		if (frag) {
+			applyState(decodeState(frag));
+			load({ history: 'replace', scroll: recallScroll(encodeState()) });
+			return;
+		}
+
+		load({ history: 'replace' });
+	}
+
 	function init() {
+		// Left to itself the browser restores the offset before the grid has
+		// arrived, lands at the top of a short page, and leaves us to correct it
+		// a moment later. Doing it after the render instead avoids the jump.
+		if (window.history && 'scrollRestoration' in window.history) {
+			window.history.scrollRestoration = 'manual';
+		}
+
 		el('dcb-search').addEventListener('input', debounce(function () {
+			// Editing a term already being searched refines one thought, so it
+			// overwrites its own history entry. Otherwise every correction would
+			// have to be undone keystroke by keystroke to leave the page.
+			var refining = (state.view === 'search');
+
 			var t = el('dcb-search').value.trim();
 			state.search = t;
 			state.view = t ? 'search' : 'browse';
@@ -659,7 +1020,7 @@
 			state.facets = [];
 			state.facetsAny = [];
 			state.offset = 0;
-			load();
+			load({ history: refining ? 'replace' : 'push' });
 		}, 250));
 
 		el('dcb-type').addEventListener('change', function () {
@@ -680,13 +1041,26 @@
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {
 			wh.addEventListener('change', function () {
-				state.warehouse = parseInt(wh.value, 10) || 0;
+				state.warehouse = Math.max(0, parseInt(wh.value, 10) || 0);
 				state.offset = 0;
 				load();
 			});
 		}
 
-		load();
+		// Back and Forward. The address bar already says where we are going, so
+		// this load must not write to history itself.
+		window.addEventListener('popstate', function () {
+			applyState(decodeState(fragment()));
+			load({ history: 'none', scroll: recallScroll(encodeState()) });
+		});
+
+		// Anything can take someone off this page — a product card, the menu, a
+		// bookmark — and only some of it announces itself first. pagehide is the
+		// one event that covers all of them, back/forward cache included.
+		window.addEventListener('pagehide', rememberScroll);
+		window.addEventListener('scroll', debounce(rememberScroll, 250), { passive: true });
+
+		start();
 	}
 
 	if (document.readyState === 'loading') {
