@@ -6,6 +6,16 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-08-30
+
+### Changed
+
+- **The picker's tag panel moved into a sidebar beside the items.** Height is
+  the scarce dimension in a dialog, and a band of tags across the top spent it on
+  filters instead of on the products you are choosing between. The panel now
+  takes a column to the left of the list and stays in place while the list
+  scrolls, and the dialog is wider — 1180px to 1480px — to pay for the space it
+  takes. The catalogue page keeps the band, having the height to spare.
 ## [1.9.0] - 2026-08-30
 
 ### Added
@@ -597,6 +607,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.9.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.1
 [1.9.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.0
 [1.8.4]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.4
 [1.8.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.3

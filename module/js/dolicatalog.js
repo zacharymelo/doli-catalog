@@ -509,33 +509,39 @@
 		var hasCategories = data.categories && data.categories.length;
 		var hasProducts = data.products && data.products.length;
 
+		var facets = facetPanel.render(data.facets, data.facetsTruncated);
+
+		// With tags to show, the panel takes a column of its own beside the items
+		// rather than a band above them: it stays put while the list scrolls, and
+		// the list keeps the full height of the modal. Without tags there is no
+		// column and the items use the whole width, so nothing is indented for a
+		// sidebar that is not there.
+		var main = results;
+		if (facets) {
+			var layout = makeEl('div', 'dolicatalog-layout');
+			var side = makeEl('div', 'dolicatalog-side');
+			side.appendChild(facets);
+			main = makeEl('div', 'dolicatalog-main');
+			layout.appendChild(side);
+			layout.appendChild(main);
+			results.appendChild(layout);
+		}
+
 		if (!hasCategories && !hasProducts) {
-			// Filtered down to nothing: the panel has to stay, or there is no way
-			// to undo the tag that emptied the list.
-			var emptyFacets = facetPanel.render(data.facets, data.facetsTruncated);
-			if (emptyFacets) {
-				results.appendChild(emptyFacets);
-			}
 			var msg = state.facets.length
 				? label('DoliCatalogNoTagMatches', 'No items match these tags.')
 				: (state.view === 'search'
 					? label('DoliCatalogNoResults', 'No matching items.')
 					: label('DoliCatalogEmptyCategory', 'This category is empty.'));
-			results.appendChild(makeEl('div', 'dolicatalog-empty', msg));
+			main.appendChild(makeEl('div', 'dolicatalog-empty', msg));
 			return;
 		}
 
 		if (hasCategories) {
-			results.appendChild(renderCategories(data.categories));
+			main.appendChild(renderCategories(data.categories));
 		}
-
-		var facets = facetPanel.render(data.facets, data.facetsTruncated);
-		if (facets) {
-			results.appendChild(facets);
-		}
-
 		if (hasProducts) {
-			results.appendChild(renderProducts(data.products, data.truncated));
+			main.appendChild(renderProducts(data.products, data.truncated));
 		}
 	}
 
