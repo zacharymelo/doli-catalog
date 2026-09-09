@@ -6,6 +6,25 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-09-09
+
+### Changed
+
+- **The switch now means what its label says.** *Show items not for sale or
+  purchase* only ever hid the not-for-sale half. Anything still sold but no
+  longer purchased sat in the listing wearing a *Not for purchase* badge whether
+  or not you had asked to see such things - clutter on every visit, and a label
+  that promised something it did not do. With the switch off the page now lists
+  only what is both sold and purchased, and shows nothing withdrawn; with it on
+  everything appears, badged. Badges are therefore only ever seen on items the
+  switch brought in, where they answer the question it raises.
+
+  Documents are deliberately not held to this. A proposal must still offer
+  something you sell but never buy, so pickers keep asking their own question -
+  is this for sale, is this for purchase - and only the catalogue page asks
+  whether an item is traded at all. The page states which rule it wants on every
+  request rather than inferring it from the document mode it shares.
+
 ## [1.11.1] - 2026-09-09
 
 ### Changed
@@ -683,6 +702,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.12.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.12.0
 [1.11.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.1
 [1.11.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.0
 [1.10.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.10.0

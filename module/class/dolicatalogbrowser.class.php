@@ -463,7 +463,7 @@ class DoliCatalogBrowser
 				$sql .= " AND cpa.fk_categorie IN (".$this->db->sanitize(implode(',', $archivedIds)).") )";
 			}
 		}
-		$sql .= $this->saleStatusClause($mode, !empty($filters['includeUnavailable']));
+		$sql .= $this->saleStatusClause($mode, isset($filters['availability']) ? $filters['availability'] : '');
 
 		if (isset($filters['type']) && $filters['type'] >= 0) {
 			$sql .= " AND p.fk_product_type = ".((int) $filters['type']);
@@ -542,7 +542,7 @@ class DoliCatalogBrowser
 
 		$joins = '';
 		$where = " WHERE p.entity IN (".getEntity('product').")";
-		$where .= $this->saleStatusClause($mode, !empty($filters['includeUnavailable']));
+		$where .= $this->saleStatusClause($mode, isset($filters['availability']) ? $filters['availability'] : '');
 
 		// Category scoping.
 		$catIds = array();
@@ -1590,20 +1590,25 @@ class DoliCatalogBrowser
 	/**
 	 * SQL fragment restricting products by their sale/purchase flags.
 	 *
-	 * @param  string $mode               Normalised mode
-	 * @param  bool   $includeUnavailable Show products whose sale or purchase
-	 *                                    flag is off, for browsing rather than
-	 *                                    for picking
-	 * @return string                     SQL fragment, possibly empty
+	 * Documents care about one flag: a proposal needs what is for sale, a
+	 * purchase order what is for purchase, and something sold but never bought
+	 * belongs on the first without qualification. The catalogue page is not
+	 * building anything, so it asks a different question - is this still traded
+	 * at all - and passes an explicit availability instead of relying on mode.
+	 *
+	 * @param  string $mode         Normalised mode
+	 * @param  string $availability '' to follow the mode, 'traded' for items
+	 *                              both sold and purchased, 'all' for every
+	 *                              item whatever its flags
+	 * @return string               SQL fragment, possibly empty
 	 */
-	private function saleStatusClause($mode, $includeUnavailable = false)
+	private function saleStatusClause($mode, $availability = '')
 	{
-		// Asked for explicitly: the catalogue page doubles as a way to find a
-		// product, and one withdrawn from sale is still a product you may be
-		// looking for. Documents never ask for this - a line cannot be added
-		// from a product that is not for sale.
-		if ($includeUnavailable) {
+		if ($availability === 'all') {
 			return "";
+		}
+		if ($availability === 'traded') {
+			return " AND p.tosell = 1 AND p.tobuy = 1";
 		}
 
 		if ($mode === 'buy') {

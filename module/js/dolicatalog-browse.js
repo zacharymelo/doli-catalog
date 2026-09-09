@@ -407,7 +407,8 @@
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
 		if (state.archived) { q.set('archived', 1); }
-		if (state.unavailable) { q.set('unavailable', 1); }
+		// Always stated, so the page's rule never falls back to a document's.
+		q.set('availability', state.unavailable ? 'all' : 'traded');
 		state.facets.forEach(function (id) { q.append('facets[]', id); });
 		state.facetsAny.forEach(function (id) { q.append('facetsany[]', id); });
 
@@ -638,10 +639,10 @@
 
 		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }
 
-		// A withdrawn product looks identical to a live one otherwise, which
-		// would make the list actively misleading rather than merely fuller.
-		// Shown whenever a flag is off, not only while the switch is on: it is
-		// a fact about the product either way.
+		// Only reachable with the switch on, since nothing withdrawn is listed
+		// without it. Saying which flag is off answers the question the switch
+		// raises - why is this one here - and a withdrawn product would
+		// otherwise look identical to a live one.
 		if (!parseInt(p.tosell, 10)) {
 			refLine.appendChild(make('span', 'dcb-badge off',
 				label('DoliCatalogNotForSale', 'Not for sale')));
