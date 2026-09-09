@@ -463,7 +463,7 @@ class DoliCatalogBrowser
 				$sql .= " AND cpa.fk_categorie IN (".$this->db->sanitize(implode(',', $archivedIds)).") )";
 			}
 		}
-		$sql .= $this->saleStatusClause($mode);
+		$sql .= $this->saleStatusClause($mode, !empty($filters['includeUnavailable']));
 
 		if (isset($filters['type']) && $filters['type'] >= 0) {
 			$sql .= " AND p.fk_product_type = ".((int) $filters['type']);
@@ -542,7 +542,7 @@ class DoliCatalogBrowser
 
 		$joins = '';
 		$where = " WHERE p.entity IN (".getEntity('product').")";
-		$where .= $this->saleStatusClause($mode);
+		$where .= $this->saleStatusClause($mode, !empty($filters['includeUnavailable']));
 
 		// Category scoping.
 		$catIds = array();
@@ -1199,6 +1199,10 @@ class DoliCatalogBrowser
 				'stock' => ($warehouse > 0)
 					? (float) (isset($obj->stock_warehouse) ? $obj->stock_warehouse : 0)
 					: (float) $obj->stock,
+				// Both flags travel with the row so the page can say which of
+				// the two a product is withdrawn from, not merely that it is.
+				'tosell' => (int) $obj->tosell,
+				'tobuy' => (int) $obj->tobuy,
 			);
 		}
 		$this->db->free($resql);
@@ -1586,11 +1590,22 @@ class DoliCatalogBrowser
 	/**
 	 * SQL fragment restricting products by their sale/purchase flags.
 	 *
-	 * @param  string $mode Normalised mode
-	 * @return string       SQL fragment, possibly empty
+	 * @param  string $mode               Normalised mode
+	 * @param  bool   $includeUnavailable Show products whose sale or purchase
+	 *                                    flag is off, for browsing rather than
+	 *                                    for picking
+	 * @return string                     SQL fragment, possibly empty
 	 */
-	private function saleStatusClause($mode)
+	private function saleStatusClause($mode, $includeUnavailable = false)
 	{
+		// Asked for explicitly: the catalogue page doubles as a way to find a
+		// product, and one withdrawn from sale is still a product you may be
+		// looking for. Documents never ask for this - a line cannot be added
+		// from a product that is not for sale.
+		if ($includeUnavailable) {
+			return "";
+		}
+
 		if ($mode === 'buy') {
 			return " AND p.tobuy = 1";
 		}

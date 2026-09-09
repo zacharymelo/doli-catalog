@@ -82,6 +82,13 @@ if (isModEnabled('stock') && getDolGlobalInt('DOLICATALOG_SHOW_STOCK', 1)) {
 	print '</span>';
 }
 
+// The page is for looking things up as much as for browsing the range, so it
+// can show what is not currently traded. Documents get no such switch.
+print '<label class="dolicatalog-archived-toggle" title="'.dol_escape_htmltag($langs->trans('DoliCatalogShowUnavailableTooltip')).'">';
+print '<input type="checkbox" id="dcb-unavailable"> ';
+print dol_escape_htmltag($langs->trans('DoliCatalogShowUnavailable'));
+print '</label>';
+
 // Only offered when an archived category has actually been configured;
 // otherwise the checkbox would toggle nothing.
 if (getDolGlobalInt('DOLICATALOG_ARCHIVED_CATEGORY') > 0) {

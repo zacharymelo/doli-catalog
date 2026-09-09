@@ -68,6 +68,13 @@ onboarding staff who know the categories but not the product codes.
 Searching from this page always searches the whole catalogue, even while inside
 a folder.
 
+A toolbar switch includes items that are **not for sale or not for purchase**,
+which the page otherwise hides. Use it when the catalogue is a place to look
+something up rather than a list of what you currently trade. Withdrawn items are
+badged and dimmed so they are never mistaken for live ones, and folder counts and
+tag filters follow the switch. It is offered on this page only: pickers inside a
+document never show withdrawn items, and the line adder refuses them outright.
+
 ### The Back button
 
 Navigating the catalogue never reloads the page, so without help the Back button

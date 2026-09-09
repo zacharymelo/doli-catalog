@@ -738,6 +738,22 @@ body.dolicatalog-open .ui-autocomplete {
 	font-size: 10px;
 }
 
+/* A withdrawn product reads as a caution rather than as a category: the pink
+   Service badge says what a thing is, this says what you cannot do with it. */
+.dcb-badge.off {
+	background: #f1f5f9;
+	color: #64748b;
+	border: 1px solid #e2e8f0;
+	padding: 0 4px;
+}
+
+/* Dimmed, so a list mixing traded and withdrawn products can be read at a
+   glance without checking every badge. */
+.dcb-card.unavailable .dcb-media,
+.dcb-card.unavailable .dcb-title,
+.dcb-card.unavailable .dcb-price {
+	opacity: 0.6;
+}
 
 .dcb-title {
 	font-weight: 600;

@@ -91,6 +91,10 @@ $facets = GETPOST('facets', 'array:int');
 // Opt-in: archived products are hidden everywhere unless asked for.
 $includeArchived = GETPOSTINT('archived');
 
+// Opt-in, and only the catalogue page offers it: a product withdrawn from sale
+// is still findable there, but must never be offered as a document line.
+$includeUnavailable = GETPOSTINT('unavailable');
+
 // Attributes the caller has switched from "all" to "any". Per attribute, so
 // Thread Size can widen while Material keeps narrowing.
 $facetsAny = GETPOST('facetsany', 'array:int');
@@ -100,6 +104,7 @@ $filters = array(
 	'offset' => $offset,
 	'facets' => is_array($facets) ? $facets : array(),
 	'includeArchived' => $includeArchived ? 1 : 0,
+	'includeUnavailable' => $includeUnavailable ? 1 : 0,
 	'facetsAny' => is_array($facetsAny) ? $facetsAny : array(),
 	'type' => $type,
 	'warehouse' => $warehouse,

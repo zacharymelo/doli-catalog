@@ -30,6 +30,7 @@
 		warehouse: 0,
 		// Archived products are hidden unless the user asks to see them.
 		archived: 0,
+		unavailable: 0,
 		// Cross-cutting tag ids. Several OR with each other and AND with the
 		// category, search and type filters.
 		facets: [],
@@ -158,6 +159,7 @@
 		if (state.type === 0 || state.type === 1) { q.set('t', state.type); }
 		if (state.warehouse > 0) { q.set('w', state.warehouse); }
 		if (state.archived) { q.set('a', '1'); }
+		if (state.unavailable) { q.set('u', '1'); }
 		if (state.facets.length) { q.set('f', state.facets.join('.')); }
 		if (state.facetsAny.length) { q.set('fa', state.facetsAny.join('.')); }
 		if (state.offset > 0) { q.set('o', state.offset); }
@@ -215,6 +217,7 @@
 			type: type,
 			warehouse: Math.max(0, parseInt(q.get('w'), 10) || 0),
 			archived: q.get('a') === '1' ? 1 : 0,
+			unavailable: q.get('u') === '1' ? 1 : 0,
 			facets: idList(q.get('f')),
 			facetsAny: idList(q.get('fa')),
 			offset: Math.max(0, parseInt(q.get('o'), 10) || 0)
@@ -234,6 +237,7 @@
 		state.type = next.type;
 		state.warehouse = next.warehouse;
 		state.archived = next.archived;
+		state.unavailable = next.unavailable;
 		state.facets = next.facets;
 		state.facetsAny = next.facetsAny;
 		state.offset = next.offset;
@@ -257,6 +261,9 @@
 
 		var archived = el('dcb-archived');
 		if (archived) { archived.checked = !!state.archived; }
+
+		var unavailable = el('dcb-unavailable');
+		if (unavailable) { unavailable.checked = !!state.unavailable; }
 
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {
@@ -397,6 +404,7 @@
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
 		if (state.archived) { q.set('archived', 1); }
+		if (state.unavailable) { q.set('unavailable', 1); }
 		state.facets.forEach(function (id) { q.append('facets[]', id); });
 		state.facetsAny.forEach(function (id) { q.append('facetsany[]', id); });
 
@@ -581,7 +589,8 @@
 	}
 
 	function productCard(p) {
-		var card = make('div', 'dcb-card');
+		var withdrawn = !parseInt(p.tosell, 10) || !parseInt(p.tobuy, 10);
+		var card = make('div', 'dcb-card' + (withdrawn ? ' unavailable' : ''));
 
 		if (CFG.showImages) {
 			var media = make('div', 'dcb-media');
@@ -624,7 +633,17 @@
 		refLink.textContent = p.ref;
 		refLine.appendChild(refLink);
 
-		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }		if (!parseInt(p.tobuy, 10)) {
+		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }
+
+		// A withdrawn product looks identical to a live one otherwise, which
+		// would make the list actively misleading rather than merely fuller.
+		// Shown whenever a flag is off, not only while the switch is on: it is
+		// a fact about the product either way.
+		if (!parseInt(p.tosell, 10)) {
+			refLine.appendChild(make('span', 'dcb-badge off',
+				label('DoliCatalogNotForSale', 'Not for sale')));
+		}
+		if (!parseInt(p.tobuy, 10)) {
 			refLine.appendChild(make('span', 'dcb-badge off',
 				label('DoliCatalogNotForPurchase', 'Not for purchase')));
 		}
@@ -860,6 +879,15 @@
 		if (arch) {
 			arch.addEventListener('change', function () {
 				state.archived = arch.checked ? 1 : 0;
+				state.offset = 0;
+				load();
+			});
+		}
+
+		var unavail = el('dcb-unavailable');
+		if (unavail) {
+			unavail.addEventListener('change', function () {
+				state.unavailable = unavail.checked ? 1 : 0;
 				state.offset = 0;
 				load();
 			});

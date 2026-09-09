@@ -6,6 +6,28 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-09-08
+
+### Added
+
+- **The catalogue page can show items that are not for sale or not for
+  purchase.** The page hid anything withdrawn from sale, which is right for a
+  document picker and wrong for a viewer: a product taken off sale is still a
+  product you may be trying to find, and the catalogue page had become the
+  quickest way to locate one. A switch in the toolbar includes them. Folder
+  counts and tag filters are recomputed over the same set, so a folder never
+  advertises a count the listing then refuses to show.
+
+  Withdrawn items are marked rather than silently mixed in: a card carries a
+  *Not for sale* or *Not for purchase* badge and is dimmed. The badges show
+  whenever a flag is off, switch or no switch, since it is a fact about the
+  product either way — a purchase-only item was always visible here and never
+  said so.
+
+  The switch belongs to the page alone. Pickers inside documents do not offer
+  it, and the line adder already refuses to sell what is not for sale or buy
+  what is not for purchase, so nothing withdrawn can reach a document line.
+
 ## [1.9.2] - 2026-08-30
 
 ### Changed
@@ -26,6 +48,10 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   labels beside their values, matching the catalogue page, rather than stacking
   them for a column that is not there.
 
+- The tag panel is styled for Dolibarr's dark themes. It had no dark rules: as a
+  thin band that went unnoticed, but as a full-height column a pale card read as
+  a hole in the dialog.
+
 ## [1.9.1] - 2026-08-30
 
 ### Changed
@@ -36,6 +62,7 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   takes a column to the left of the list and stays in place while the list
   scrolls, and the dialog is wider — 1180px to 1480px — to pay for the space it
   takes. The catalogue page keeps the band, having the height to spare.
+
 ## [1.9.0] - 2026-08-30
 
 ### Added
@@ -627,6 +654,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.10.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.10.0
 [1.9.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.2
 [1.9.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.1
 [1.9.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.0

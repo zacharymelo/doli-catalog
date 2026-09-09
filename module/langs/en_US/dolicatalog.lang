@@ -131,3 +131,7 @@ MaxFacets = Maximum tag filters
 MaxFacetsDesc = Tag filters offered before the list is cut, keeping the most used. The catalog says how many were cut when it happens. Between 10 and 500.
 DoliCatalogMoreTagsHidden = more not shown
 DoliCatalogMoreTagsHiddenTooltip = Raise the tag filter limit in the module setup to show more.
+DoliCatalogShowUnavailable = Show items not for sale or purchase
+DoliCatalogShowUnavailableTooltip = Include products and services whose sale or purchase flag is off. They cannot be added to a document.
+DoliCatalogNotForSale = Not for sale
+DoliCatalogNotForPurchase = Not for purchase
