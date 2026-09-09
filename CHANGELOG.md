@@ -8,41 +8,20 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.12.1] - 2026-09-09
 
-### Fixed
-
-- **The catalogue page no longer hides what you sell but do not buy.** 1.12.0
-  made the switch cover purchase status as well, which withdrew every product
-  flagged not-for-purchase from the default listing - services, anything
-  manufactured rather than bought, a large and entirely sellable part of most
-  catalogues. Purchase status has no bearing on whether an item belongs in a
-  sales catalogue and no longer filters the page.
+### Changed
 
 - **The *Not for purchase* badge is gone.** On a page about what you sell it
   labelled a distinction that does not apply there, on items that were never at
-  risk of being hidden. Only *Not for sale* remains, and only on the items the
-  switch brings in.
+  risk of being hidden - a business sells plenty it never buys, and saying so on
+  every one of them was noise on every visit. Only *Not for sale* remains, and
+  because nothing withdrawn from sale is listed unless the switch asks for it,
+  a badge is now only ever seen on an item the switch brought in, where it
+  answers the question that raises.
 
-- The switch and its setting are named for what they now do: *Show items not for
-  sale*. They previously promised purchase status too.
+- The switch and its setting are named for what they do: *Show items not for
+  sale*. They previously promised purchase status too, which the page has never
+  filtered on and no longer mentions.
 
-## [1.12.0] - 2026-09-09
-
-### Changed
-
-- **The switch now means what its label says.** *Show items not for sale or
-  purchase* only ever hid the not-for-sale half. Anything still sold but no
-  longer purchased sat in the listing wearing a *Not for purchase* badge whether
-  or not you had asked to see such things - clutter on every visit, and a label
-  that promised something it did not do. With the switch off the page now lists
-  only what is both sold and purchased, and shows nothing withdrawn; with it on
-  everything appears, badged. Badges are therefore only ever seen on items the
-  switch brought in, where they answer the question it raises.
-
-  Documents are deliberately not held to this. A proposal must still offer
-  something you sell but never buy, so pickers keep asking their own question -
-  is this for sale, is this for purchase - and only the catalogue page asks
-  whether an item is traded at all. The page states which rule it wants on every
-  request rather than inferring it from the document mode it shares.
 
 ## [1.11.1] - 2026-09-09
 
@@ -722,7 +701,6 @@ First release.
   lines are always created through each document class's own `addline()`.
 
 [1.12.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.12.1
-[1.12.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.12.0
 [1.11.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.1
 [1.11.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.0
 [1.10.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.10.0
