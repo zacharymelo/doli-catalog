@@ -186,13 +186,23 @@ treatment. `DoliCatalogLineAdder` is where that goes.
 
 ## Install
 
-Build the installable zip:
+Download `dolicatalog-<version>.zip` from the
+[latest release](https://github.com/zacharymelo/doli-catalog/releases/latest).
+
+Then in Dolibarr: **Home → Setup → Modules → Deploy external module**, upload the
+zip, enable **Doli Catalog**, and open its setup page.
+
+If your Dolibarr refuses external module deployment, the zip is a plain folder:
+unpack it into `htdocs/custom/` so that `htdocs/custom/dolicatalog/` exists, then
+enable the module as above.
+
+### From source
 
 ```bash
+git clone https://github.com/zacharymelo/doli-catalog.git
+cd doli-catalog
 ./build.sh
 ```
-
-Then in Dolibarr: **Home → Setup → Modules → Deploy external module**, upload `dolicatalog-<version>.zip`, enable **Doli Catalog**, and open its setup page.
 
 > The zip must have `dolicatalog/` at its top level, not `module/`. `build.sh` handles this; Dolibarr rejects the package otherwise.
 
@@ -234,6 +244,7 @@ Settings survive that cycle. A missing constant is seeded with its default on ac
 | Root categories | empty | Categories shown at the top level. Empty means every top-level category. Chosen from a picker. |
 | Attribute roots | empty | Categories whose children name an attribute, used to group tag filters. Chosen from a picker. |
 | Maximum tag filters | 200 | Tag filters offered before the list is cut, most used first (10–500) |
+| Show items not for sale | off | Whether the catalogue page opens with items withdrawn from sale already shown. The checkbox on the page overrides it either way. |
 | Archived category | none | Products in this category, or beneath it, are hidden from the catalogue along with the category itself |
 | Debug mode | off | Exposes `ajax/debug.php` |
 

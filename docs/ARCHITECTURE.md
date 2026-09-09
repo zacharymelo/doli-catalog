@@ -92,6 +92,24 @@ Two consequences, both easy to get wrong:
 
 `bom` applying no flag filter is deliberate. A manufactured sub-assembly is routinely flagged neither for sale nor for purchase; filtering on those flags would hide the very components a bill of materials consists of.
 
+Mode alone does not settle visibility. `saleStatusClause()` takes an
+`availability` filter that only the catalogue page ever sets, and only ever to
+`'all'`, which drops the flag restriction entirely so a product withdrawn from
+sale can still be found. Every other caller passes nothing and keeps its mode's
+rule.
+
+The distinction matters because the page shares `sell` with proposals, orders
+and invoices. Tightening `sell` to reach the page would have narrowed all of
+them — which is exactly what 1.12.0 did by requiring `tosell = 1 AND tobuy = 1`,
+withdrawing every service and manufactured item from the catalogue before 1.12.1
+reverted it. Purchase status says nothing about whether something belongs in a
+sales catalogue; a business sells plenty it never buys.
+
+What the switch may reveal is not what may be added. `DoliCatalogLineAdder`
+re-checks `tosell` / `tobuy` against the document's mode as it builds each line
+and refuses the ones that fail, so the guarantee rests on the code that creates
+lines rather than on what a listing happened to offer.
+
 In `buy` mode the supplier price comes from a single grouped subquery joined onto the product table, not a per-row lookup:
 
 ```sql
@@ -207,6 +225,28 @@ The cap is `DOLICATALOG_MAX_FACETS` (default 200). It cuts by rank, not by count
 which means whichever count sits at the boundary looks like a minimum threshold
 to whoever is using it — so when it bites, the response reports how many were
 dropped rather than silently omitting them.
+
+### One panel, two surfaces
+
+The endpoint has always returned facets to every caller; for a while only the
+standalone page rendered them. `js/dolicatalog-facets.js` now owns the panel and
+both surfaces build it through `DoliCatalogFacets.create(ctx)`, passing their own
+DOM helpers, their own selection arrays and callbacks. The module mutates those
+arrays in place and asks the host to reload, so there is still one source of
+truth for what is selected.
+
+Presentation is the host's business, not the panel's. The page renders it as a
+band above the results; the picker gives it a column beside them, because a modal
+is short on height and a band spends that height on filters rather than on the
+products being chosen between. Folding it marks the picker's layout `folded`,
+which drops the grid to a single column so the items reclaim the width instead of
+leaving an empty gutter — the collapse class sits on the panel, which the parent
+grid cannot see, so the host has to say so itself.
+
+`ctx.defaultCollapsed()` decides the state before the user has expressed one; the
+picker folds under 900px, where an open panel takes a third of a phone screen
+before anyone has asked to filter anything. Only an explicit choice is stored, so
+that default stops applying the moment someone unfolds it.
 
 ## Archived products
 
