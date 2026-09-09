@@ -131,6 +131,7 @@ foreach ($labelKeys as $k) {
 }
 
 print '<script type="application/json" id="dolicatalog-browse-config">'.json_encode($config).'</script>';
+print '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog-facets.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog-facets.js')).'"></script>';
 print '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog-browse.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog-browse.js')).'"></script>';
 
 llxFooter();

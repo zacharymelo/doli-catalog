@@ -25,6 +25,7 @@ DoliCatalogAllWarehouses = Tous les entrepots
 DoliCatalogLoading = Chargement...
 DoliCatalogNoResults = Aucun article correspondant.
 DoliCatalogEmptyCategory = Cette categorie ne contient aucun article.
+DoliCatalogNoTagMatches = Aucun article ne correspond a ces tags.
 DoliCatalogTruncated = Il existe plus de resultats que ceux affiches. Affinez la recherche ou ouvrez une sous-categorie.
 DoliCatalogError = Le catalogue n'a pas pu etre charge.
 DoliCatalogAddSelected = Ajouter la selection

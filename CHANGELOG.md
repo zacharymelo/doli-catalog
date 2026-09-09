@@ -6,7 +6,19 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-30
+
 ### Added
+
+- **Tag filters in the in-document catalogue picker.** The "refine by" panel that
+  the standalone catalogue page has had was missing from the picker you open on a
+  proposal, order or invoice, so inside a broad category the only way to narrow
+  the list was to read it. The picker now shows the same panel, grouped by
+  attribute, with the same all/any switch and the same counts. The endpoint had
+  always sent the tags; only the picker was throwing them away. Both surfaces now
+  render it from one file, so they cannot drift apart. Tags reset when you change
+  category or search, since they describe the listing you are looking at and would
+  otherwise silently empty the next one.
 
 - **The Back button now works on the catalogue page.** Browsing never reloads
   the page, so Back used to skip the whole visit and leave the catalogue — a
@@ -585,6 +597,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.9.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.0
 [1.8.4]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.4
 [1.8.3]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.3
 [1.8.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.2

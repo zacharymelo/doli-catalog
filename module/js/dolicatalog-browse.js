@@ -510,204 +510,27 @@
 	 *
 	 * @return {boolean} True when collapsed
 	 */
-	function facetsCollapsed() {
-		try {
-			return window.localStorage.getItem(FACETS_COLLAPSED_KEY) === '1';
-		} catch (e) {
-			// Private browsing and similar can refuse storage; default to open.
-			return false;
-		}
-	}
-
 	/**
-	 * Remember the collapsed choice.
-	 *
-	 * @param  {boolean} collapsed Desired state
-	 * @return {void}
+	 * The "refine by" panel lives in dolicatalog-facets.js so the in-document
+	 * picker renders exactly the same thing from the same payload.
 	 */
-	function setFacetsCollapsed(collapsed) {
-		try {
-			window.localStorage.setItem(FACETS_COLLAPSED_KEY, collapsed ? '1' : '0');
-		} catch (e) {
-			// Not being able to remember it is not worth failing the click over.
-		}
-	}
-
-	/** How many values a group shows before collapsing the rest behind a toggle. */
-	var FACET_VISIBLE = 12;
-
-	/**
-	 * One selectable value.
-	 *
-	 * @param  {Object} f Facet from the endpoint
-	 * @return {Element}  Chip
-	 */
-	function facetChip(f) {
-		var chip = make('button', 'dcb-facet' + (f.selected ? ' on' : ''));
-		chip.type = 'button';
-		if (f.color) { chip.style.borderLeft = '3px solid #' + f.color; }
-		chip.appendChild(document.createTextNode(f.label));
-		chip.appendChild(make('span', 'dcb-facet-count', f.count));
-
-		chip.addEventListener('click', function () {
-			var i = state.facets.indexOf(f.id);
-			if (i === -1) { state.facets.push(f.id); } else { state.facets.splice(i, 1); }
+	var facetPanel = window.DoliCatalogFacets.create({
+		make: make,
+		label: label,
+		storageKey: FACETS_COLLAPSED_KEY,
+		selected: function () { return state.facets; },
+		anyGroups: function () { return state.facetsAny; },
+		onChange: function () {
 			state.offset = 0;
 			load();
-		});
-
-		return chip;
-	}
-
-	/**
-	 * One attribute: its name, then its values.
-	 *
-	 * @param  {string} name   Attribute name, empty for loose tags
-	 * @param  {Array}  values Facets belonging to it
-	 * @return {Element}       Row
-	 */
-	function facetGroup(name, values) {
-		var row = make('div', 'dcb-facet-group');
-		row.appendChild(make('span', 'dcb-facet-group-label',
-			name || label('DoliCatalogOtherTags', 'Other')));
-
-		var box = make('div', 'dcb-facet-values');
-
-		// A selected value must stay visible even if it sits past the cut, or it
-		// could not be switched off without expanding first.
-		var alwaysShow = values.filter(function (f) { return f.selected; });
-		var head = values.slice(0, FACET_VISIBLE);
-		var tail = values.slice(FACET_VISIBLE);
-		alwaysShow.forEach(function (f) {
-			if (head.indexOf(f) === -1) {
-				head.push(f);
-				tail.splice(tail.indexOf(f), 1);
-			}
-		});
-
-		var modeToggle = null;
-
-		// Only meaningful once two values of this attribute are selected: with
-		// one, "all" and "any" describe the same set.
-		var groupId = values.length ? (values[0].group_id || 0) : 0;
-		var selectedHere = values.filter(function (f) { return f.selected; }).length;
-
-		if (groupId > 0 && selectedHere > 1) {
-			var isAny = state.facetsAny.indexOf(groupId) !== -1;
-			var toggle = make('button', 'dcb-facet-mode' + (isAny ? ' any' : ''));
-			toggle.type = 'button';
-			toggle.title = isAny
-				? label('DoliCatalogMatchAnyHint', 'Showing items matching any selected value. Click to require all.')
-				: label('DoliCatalogMatchAllHint', 'Showing items matching all selected values. Click to allow any.');
-			toggle.appendChild(make('span', 'dcb-facet-mode-on', isAny
-				? label('DoliCatalogMatchAny', 'Any')
-				: label('DoliCatalogMatchAll', 'All')));
-
-			toggle.addEventListener('click', function () {
-				var i = state.facetsAny.indexOf(groupId);
-				if (i === -1) { state.facetsAny.push(groupId); } else { state.facetsAny.splice(i, 1); }
-				state.offset = 0;
-				load();
-			});
-
-			modeToggle = toggle;
-		}
-
-		head.forEach(function (f) { box.appendChild(facetChip(f)); });
-
-		if (tail.length) {
-			var more = make('button', 'dcb-facet-more', '+' + tail.length + ' ' + label('DoliCatalogMoreValues', 'more'));
-			more.type = 'button';
-			more.addEventListener('click', function () {
-				tail.forEach(function (f) { box.insertBefore(facetChip(f), more); });
-				more.parentNode.removeChild(more);
-			});
-			box.appendChild(more);
-		}
-
-		// After the values: the switch describes what they do together.
-		if (modeToggle) { box.appendChild(modeToggle); }
-
-		row.appendChild(box);
-
-		return row;
-	}
+		},
+		// Nothing about the view has changed, so it must not land in history as
+		// somewhere to go back to.
+		onToggle: function () { load({ history: 'replace' }); }
+	});
 
 	function renderFacets(facets, truncated) {
-		if (!facets || !facets.length) { return null; }
-
-		var collapsed = facetsCollapsed();
-		var host = make('div', 'dolicatalog-facets' + (collapsed ? ' collapsed' : ''));
-
-		var header = make('button', 'dcb-facet-heading');
-		header.type = 'button';
-		header.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-		header.appendChild(make('span', 'dcb-facet-caret', collapsed ? '\u25B8' : '\u25BE'));
-		header.appendChild(make('span', 'dcb-facet-heading-text', label('DoliCatalogRefineBy', 'Refine by')));
-
-		// Folded away, the panel must still say that it is filtering something,
-		// or a short result list looks like an empty catalogue.
-		if (collapsed && state.facets.length) {
-			header.appendChild(make('span', 'dcb-facet-active',
-				state.facets.length + ' ' + label('DoliCatalogFiltersActive', 'active')));
-		}
-
-		var body = make('div', 'dcb-facet-body');
-
-		header.addEventListener('click', function () {
-			var next = !host.classList.contains('collapsed');
-			setFacetsCollapsed(next);
-			// Re-render rather than toggling a class, so the active-count badge
-			// and caret are rebuilt from one place. Nothing about the view has
-			// changed, so it must not land in history as somewhere to go back to.
-			load({ history: 'replace' });
-		});
-
-		host.appendChild(header);
-		host.appendChild(body);
-
-		// Already ordered by the server; walking in sequence keeps a group's
-		// values together without re-sorting them here.
-		var currentId = null;
-		var currentName = null;
-		var bucket = [];
-
-		function flush() {
-			if (bucket.length) { body.appendChild(facetGroup(currentName, bucket)); }
-			bucket = [];
-		}
-
-		facets.forEach(function (f) {
-			var gid = f.group_id || 0;
-			if (currentId !== null && gid !== currentId) { flush(); }
-			currentId = gid;
-			currentName = f.group_label || '';
-			bucket.push(f);
-		});
-		flush();
-
-		// A filter that silently omits options is worse than one that admits it.
-		if (truncated > 0) {
-			var note = make('span', 'dcb-facet-more',
-				'+' + truncated + ' ' + label('DoliCatalogMoreTagsHidden', 'more not shown'));
-			note.title = label('DoliCatalogMoreTagsHiddenTooltip',
-				'Raise the tag filter limit in the module setup to show more.');
-			body.appendChild(note);
-		}
-
-		if (state.facets.length) {
-			var clearBtn = make('button', 'dcb-facet-clear', label('DoliCatalogClearTags', 'Clear all'));
-			clearBtn.type = 'button';
-			clearBtn.addEventListener('click', function () {
-				state.facets = [];
-				state.facetsAny = [];
-				state.offset = 0;
-				load();
-			});
-			body.appendChild(clearBtn);
-		}
-
-		return host;
+		return facetPanel.render(facets, truncated);
 	}
 
 	function renderFolders(cats) {
@@ -801,7 +624,11 @@
 		refLink.textContent = p.ref;
 		refLine.appendChild(refLink);
 
-		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }
+		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }		if (!parseInt(p.tobuy, 10)) {
+			refLine.appendChild(make('span', 'dcb-badge off',
+				label('DoliCatalogNotForPurchase', 'Not for purchase')));
+		}
+
 		body.appendChild(refLine);
 
 		body.appendChild(make('div', 'dcb-title', p.label));

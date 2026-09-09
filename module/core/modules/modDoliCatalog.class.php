@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.8.4';
+		$this->version = '1.9.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';

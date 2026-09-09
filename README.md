@@ -35,6 +35,8 @@ It reads native tables only. No core file is modified.
 
 **Filter.** Products vs services. Warehouse — which also switches the stock column from the all-warehouse total to that warehouse's quantity. On purchase documents, an optional *This supplier only* toggle.
 
+**Refine by tag.** Inside a category, a *Refine by* panel offers the other tags carried by the items on screen, with a count against each. Picking tags from different attributes narrows the list to items carrying all of them, so *Brass* plus *NPT* inside Fittings leaves only the brass NPT parts. Picking two values of the same attribute defaults to the same all-of rule and offers an **All / Any** switch to widen it to either. Tags are grouped under their attribute name when you nominate the attribute roots in setup, and counts always reflect what is currently selected. The panel appears both on the catalogue page and in the picker inside a document, and folds away if you would rather not see it.
+
 **Pick.** Tick as many items as you like, set a quantity on each, review them as chips in the footer, then add them all in one action. Typing a quantity selects the item, so the common case is a single keystroke.
 
 **Remember.** Star items into per-user favourites. Recently picked items are tracked per user and surfaced in their own tab.

@@ -29,6 +29,8 @@
 		type: -1,
 		warehouse: 0,
 		breadcrumb: [],
+		facets: [],           // selected tag ids
+		facetsAny: [],        // attribute ids switched from "all" to "any"
 		selection: {},        // productId -> {id, ref, label, qty}
 		loading: false,
 		requestSeq: 0
@@ -118,6 +120,8 @@
 		if (params.q) {
 			query.set('q', params.q);
 		}
+		state.facets.forEach(function (id) { query.append('facets[]', id); });
+		state.facetsAny.forEach(function (id) { query.append('facetsany[]', id); });
 
 		var seq = ++state.requestSeq;
 
@@ -166,6 +170,7 @@
 			state.category = 0;
 			el('dolicatalog-search').value = '';
 			state.search = '';
+			resetFacets();
 			load();
 		}, state.view === 'browse' && state.category === 0));
 
@@ -183,6 +188,7 @@
 				nav.appendChild(crumb(item.label, function () {
 					state.view = 'browse';
 					state.category = item.id;
+					resetFacets();
 					load();
 				}, isLast));
 			});
@@ -216,6 +222,7 @@
 			}
 			el('dolicatalog-search').value = '';
 			state.search = '';
+			resetFacets();
 			load();
 		});
 		return btn;
@@ -256,6 +263,7 @@
 			card.addEventListener('click', function () {
 				state.view = 'browse';
 				state.category = cat.id;
+				resetFacets();
 				load();
 			});
 
@@ -469,6 +477,31 @@
 		return row;
 	}
 
+	/**
+	 * Tag filters. Same panel as the standalone browser, from the same payload:
+	 * the endpoint has always returned facets here, the picker just threw them
+	 * away.
+	 */
+	var facetPanel = window.DoliCatalogFacets.create({
+		make: makeEl,
+		label: label,
+		storageKey: 'dolicatalog.picker.facets.collapsed',
+		selected: function () { return state.facets; },
+		anyGroups: function () { return state.facetsAny; },
+		onChange: load,
+		onToggle: load
+	});
+
+	/**
+	 * Tags are scoped to whatever is on screen, so they cannot survive a move to
+	 * a different category or search: left applied, they would filter the new
+	 * listing down to nothing for no visible reason.
+	 */
+	function resetFacets() {
+		state.facets = [];
+		state.facetsAny = [];
+	}
+
 	function renderResults(data) {
 		var results = el('dolicatalog-results');
 		clear(results);
@@ -477,9 +510,17 @@
 		var hasProducts = data.products && data.products.length;
 
 		if (!hasCategories && !hasProducts) {
-			var msg = state.view === 'search'
-				? label('DoliCatalogNoResults', 'No matching items.')
-				: label('DoliCatalogEmptyCategory', 'This category is empty.');
+			// Filtered down to nothing: the panel has to stay, or there is no way
+			// to undo the tag that emptied the list.
+			var emptyFacets = facetPanel.render(data.facets, data.facetsTruncated);
+			if (emptyFacets) {
+				results.appendChild(emptyFacets);
+			}
+			var msg = state.facets.length
+				? label('DoliCatalogNoTagMatches', 'No items match these tags.')
+				: (state.view === 'search'
+					? label('DoliCatalogNoResults', 'No matching items.')
+					: label('DoliCatalogEmptyCategory', 'This category is empty.'));
 			results.appendChild(makeEl('div', 'dolicatalog-empty', msg));
 			return;
 		}
@@ -487,6 +528,12 @@
 		if (hasCategories) {
 			results.appendChild(renderCategories(data.categories));
 		}
+
+		var facets = facetPanel.render(data.facets, data.facetsTruncated);
+		if (facets) {
+			results.appendChild(facets);
+		}
+
 		if (hasProducts) {
 			results.appendChild(renderProducts(data.products, data.truncated));
 		}
@@ -744,6 +791,7 @@
 			var term = el('dolicatalog-search').value.trim();
 			state.search = term;
 			state.view = term ? 'search' : 'browse';
+			resetFacets();
 			load();
 		}, 250);
 		el('dolicatalog-search').addEventListener('input', onSearch);

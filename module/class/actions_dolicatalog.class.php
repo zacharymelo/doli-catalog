@@ -373,6 +373,8 @@ class ActionsDoliCatalog
 
 		$out .= dolicatalogStylesheetTag();
 		$out .= '<script type="application/json" id="dolicatalog-config">'.json_encode($config).'</script>';
+		// Shared with the standalone browser; must load before the picker that uses it.
+		$out .= '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog-facets.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog-facets.js')).'"></script>';
 		$out .= '<script src="'.dol_buildpath('/dolicatalog/js/dolicatalog.js', 1).'?v='.urlencode(dolicatalogAssetVersion('/dolicatalog/js/dolicatalog.js')).'"></script>';
 		if ($wrap === 'tablerow') {
 			$out .= '</td></tr>';
@@ -439,6 +441,11 @@ class ActionsDoliCatalog
 			'DoliCatalogStockWarehouse', 'DoliCatalogStockAll', 'DoliCatalogServiceNoStock',
 			'DoliCatalogClearSelectionTooltip', 'DoliCatalogRemoveItem',
 			'DoliCatalogFavoritesTooltip', 'DoliCatalogRecentTooltip', 'BarCode',
+			// Tag filter panel, shared with the standalone browser.
+			'DoliCatalogClearTags', 'DoliCatalogFiltersActive', 'DoliCatalogMatchAll', 'DoliCatalogMatchAllHint',
+			'DoliCatalogMatchAny', 'DoliCatalogMatchAnyHint', 'DoliCatalogMoreTagsHidden',
+			'DoliCatalogMoreTagsHiddenTooltip', 'DoliCatalogMoreValues', 'DoliCatalogOtherTags',
+			'DoliCatalogRefineBy', 'DoliCatalogNoTagMatches',
 		);
 
 		$out = array();
