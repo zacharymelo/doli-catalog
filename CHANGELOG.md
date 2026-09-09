@@ -6,6 +6,25 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-09
+
+### Added
+
+- **A default for the not-for-sale switch, in module setup.** *Show items not
+  for sale or purchase* decides what the catalogue page opens with. Whichever
+  way it is set, the page's own checkbox still turns them on or off for the
+  person looking, so the setting chooses the starting point rather than the
+  policy. It survives deactivating the module, like the rest of the setup.
+
+### Changed
+
+- **The switch moved next to Favorites and Recently used.** It sat in the
+  toolbar with the type and warehouse filters, which narrow a set; this one
+  changes which set you are looking at, the same as those two buttons do. The
+  URL now records it only when it differs from the configured default, so a link
+  stays clean until someone deliberately departs from it, and still carries that
+  choice when they do.
+
 ## [1.10.0] - 2026-09-08
 
 ### Added
@@ -654,6 +673,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.11.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.0
 [1.10.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.10.0
 [1.9.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.2
 [1.9.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.1

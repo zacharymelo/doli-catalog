@@ -174,6 +174,7 @@ dolicatalogPrintCategoryMultiRow('DOLICATALOG_ATTRIBUTE_ROOTS', 'AttributeRoots'
 
 // Debug toggle stays last.
 dolicatalogPrintInputRow('DOLICATALOG_MAX_FACETS', 'MaxFacets', 'MaxFacetsDesc', 'number', '200', 'min="10" max="500" style="width:70px;"');
+dolicatalogPrintToggleRow('DOLICATALOG_SHOW_UNAVAILABLE', 'ShowUnavailable', 'ShowUnavailableDesc');
 dolicatalogPrintCategoryRow('DOLICATALOG_ARCHIVED_CATEGORY', 'ArchivedCategory', 'ArchivedCategoryDesc');
 dolicatalogPrintToggleRow('DOLICATALOG_LIST_TREE', 'ListTree', 'ListTreeDesc');
 dolicatalogPrintToggleRow('DOLICATALOG_DEBUG_MODE', 'DebugMode', 'DebugModeDesc');

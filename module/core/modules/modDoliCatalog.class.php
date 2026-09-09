@@ -43,7 +43,7 @@ class modDoliCatalog extends DolibarrModules
 		$this->editor_name = 'Zachary Melo';
 		$this->editor_url = '';
 
-		$this->version = '1.10.0';
+		$this->version = '1.11.0';
 		$this->const_name = 'MAIN_MODULE_'.strtoupper($this->name);
 
 		$this->picto = 'product';
@@ -109,6 +109,7 @@ class modDoliCatalog extends DolibarrModules
 			array('DOLICATALOG_ATTRIBUTE_ROOTS', 'chaine', '', 'Category ids whose children name an attribute', 0, 'current', 0),
 			array('DOLICATALOG_MAX_FACETS', 'chaine', '200', 'Maximum tag filters shown before the list is truncated', 0, 'current', 0),
 			array('DOLICATALOG_ARCHIVED_CATEGORY', 'chaine', '0', 'Category marking a product as archived and hidden from the catalog', 0, 'current', 0),
+			array('DOLICATALOG_SHOW_UNAVAILABLE', 'chaine', '0', 'Catalogue page starts with items not for sale or purchase shown', 0, 'current', 0),
 			array('DOLICATALOG_DEBUG_MODE', 'chaine', '0', 'Expose the diagnostic endpoint', 0, 'current', 0),
 		);
 

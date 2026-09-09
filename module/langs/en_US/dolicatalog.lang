@@ -135,3 +135,5 @@ DoliCatalogShowUnavailable = Show items not for sale or purchase
 DoliCatalogShowUnavailableTooltip = Include products and services whose sale or purchase flag is off. They cannot be added to a document.
 DoliCatalogNotForSale = Not for sale
 DoliCatalogNotForPurchase = Not for purchase
+ShowUnavailable = Show items not for sale or purchase
+ShowUnavailableDesc = Start the catalogue page with products and services whose sale or purchase flag is off already shown. Either way a checkbox on the page turns them on or off, and documents never offer them.

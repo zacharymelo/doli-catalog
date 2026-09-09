@@ -30,7 +30,7 @@
 		warehouse: 0,
 		// Archived products are hidden unless the user asks to see them.
 		archived: 0,
-		unavailable: 0,
+		unavailable: CFG.showUnavailable ? 1 : 0,
 		// Cross-cutting tag ids. Several OR with each other and AND with the
 		// category, search and type filters.
 		facets: [],
@@ -159,7 +159,9 @@
 		if (state.type === 0 || state.type === 1) { q.set('t', state.type); }
 		if (state.warehouse > 0) { q.set('w', state.warehouse); }
 		if (state.archived) { q.set('a', '1'); }
-		if (state.unavailable) { q.set('u', '1'); }
+		if (state.unavailable !== (CFG.showUnavailable ? 1 : 0)) {
+			q.set('u', state.unavailable ? '1' : '0');
+		}
 		if (state.facets.length) { q.set('f', state.facets.join('.')); }
 		if (state.facetsAny.length) { q.set('fa', state.facetsAny.join('.')); }
 		if (state.offset > 0) { q.set('o', state.offset); }
@@ -217,7 +219,7 @@
 			type: type,
 			warehouse: Math.max(0, parseInt(q.get('w'), 10) || 0),
 			archived: q.get('a') === '1' ? 1 : 0,
-			unavailable: q.get('u') === '1' ? 1 : 0,
+			unavailable: q.has('u') ? (q.get('u') === '1' ? 1 : 0) : (CFG.showUnavailable ? 1 : 0),
 			facets: idList(q.get('f')),
 			facetsAny: idList(q.get('fa')),
 			offset: Math.max(0, parseInt(q.get('o'), 10) || 0)
@@ -262,8 +264,6 @@
 		var archived = el('dcb-archived');
 		if (archived) { archived.checked = !!state.archived; }
 
-		var unavailable = el('dcb-unavailable');
-		if (unavailable) { unavailable.checked = !!state.unavailable; }
 
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {
@@ -464,7 +464,7 @@
 					state.view = 'browse';
 					state.category = item.id;
 					state.facets = [];
-				state.facetsAny = [];
+					state.facetsAny = [];
 					state.offset = 0;
 					load();
 				}, i === state.breadcrumb.length - 1));
@@ -475,7 +475,36 @@
 		var tabs = make('div', 'dolicatalog-tabs');
 		if (CFG.enableFavorites) { tabs.appendChild(tab(label('DoliCatalogFavorites', 'Favorites'), 'fa-star', 'favorites')); }
 		if (CFG.enableRecent) { tabs.appendChild(tab(label('DoliCatalogRecent', 'Recently used'), 'fa-history', 'recent')); }
+		tabs.appendChild(availabilityToggle());
 		host.appendChild(tabs);
+	}
+
+	/**
+	 * Shows or hides items withdrawn from sale or purchase.
+	 *
+	 * Rebuilt with the tabs on every render, so it always reflects the state
+	 * rather than needing to be kept in step with it.
+	 *
+	 * @return {Element} Checkbox and its label
+	 */
+	function availabilityToggle() {
+		var wrap = make('label', 'dolicatalog-archived-toggle dcb-availability');
+		wrap.title = label('DoliCatalogShowUnavailableTooltip',
+			'Include products and services whose sale or purchase flag is off.');
+
+		var box = document.createElement('input');
+		box.type = 'checkbox';
+		box.checked = !!state.unavailable;
+		box.addEventListener('change', function () {
+			state.unavailable = box.checked ? 1 : 0;
+			state.offset = 0;
+			load();
+		});
+
+		wrap.appendChild(box);
+		wrap.appendChild(document.createTextNode(' ' + label('DoliCatalogShowUnavailable', 'Show items not for sale or purchase')));
+
+		return wrap;
 	}
 
 	function tab(text, icon, view) {
@@ -884,14 +913,6 @@
 			});
 		}
 
-		var unavail = el('dcb-unavailable');
-		if (unavail) {
-			unavail.addEventListener('change', function () {
-				state.unavailable = unavail.checked ? 1 : 0;
-				state.offset = 0;
-				load();
-			});
-		}
 
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {

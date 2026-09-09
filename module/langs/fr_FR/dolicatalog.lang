@@ -135,3 +135,5 @@ DoliCatalogShowUnavailable = Afficher les articles hors vente ou hors achat
 DoliCatalogShowUnavailableTooltip = Inclut les produits et services dont l indicateur de vente ou d achat est desactive. Ils ne peuvent pas etre ajoutes a un document.
 DoliCatalogNotForSale = Hors vente
 DoliCatalogNotForPurchase = Hors achat
+ShowUnavailable = Afficher les articles hors vente ou hors achat
+ShowUnavailableDesc = Ouvre la page catalogue avec les produits et services hors vente ou hors achat deja affiches. Dans tous les cas une case a cocher sur la page les active ou les desactive, et les documents ne les proposent jamais.
