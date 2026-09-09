@@ -6,6 +6,26 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-08-30
+
+### Changed
+
+- **Folding the tag panel away now gives the space back.** In the picker the
+  panel had a column of its own, but folding it only emptied that column instead
+  of removing it, so the items kept their old width and a 234px gutter sat blank
+  beside them. Folded, the layout now drops to a single column and the heading
+  becomes a bar above the list, pinned to the top of the scroll so reopening the
+  filters never means scrolling back up.
+
+- **The picker's tag panel is made for small screens.** Under 900px there is no
+  room for a column, so the panel returns to a band above the list and folds
+  vertically, and it now starts folded: on a phone the picker fills the screen,
+  and an open panel took a third of it before anyone had asked to filter
+  anything. Folded, a whole page of items fits instead of four rows. Opening it
+  once is remembered, at every width. Between 700 and 900px the band keeps its
+  labels beside their values, matching the catalogue page, rather than stacking
+  them for a column that is not there.
+
 ## [1.9.1] - 2026-08-30
 
 ### Changed
@@ -607,6 +627,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.9.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.2
 [1.9.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.1
 [1.9.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.0
 [1.8.4]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.8.4

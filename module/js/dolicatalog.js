@@ -486,6 +486,10 @@
 		make: makeEl,
 		label: label,
 		storageKey: 'dolicatalog.picker.facets.collapsed',
+		// On a phone the modal is the whole screen and an open panel takes a
+		// third of it before the user has asked for any filtering, so it starts
+		// folded there. Unfolding it once is remembered, on every width.
+		defaultCollapsed: function () { return window.innerWidth <= 900; },
 		selected: function () { return state.facets; },
 		anyGroups: function () { return state.facetsAny; },
 		onChange: load,
@@ -518,7 +522,11 @@
 		// sidebar that is not there.
 		var main = results;
 		if (facets) {
-			var layout = makeEl('div', 'dolicatalog-layout');
+			// Folded, the column has nothing in it but its own heading, so the
+			// layout drops to one column and the items take the width back. A
+			// shrunken sidebar is wasted space, not a smaller filter.
+			var folded = facets.classList.contains('collapsed');
+			var layout = makeEl('div', 'dolicatalog-layout' + (folded ? ' folded' : ''));
 			var side = makeEl('div', 'dolicatalog-side');
 			side.appendChild(facets);
 			main = makeEl('div', 'dolicatalog-main');

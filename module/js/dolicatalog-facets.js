@@ -22,6 +22,8 @@
 	 *                      make(tag, cls, text) -> Element
 	 *                      label(key, fallback) -> string
 	 *                      storageKey            collapse memory, per surface
+	 *                      defaultCollapsed()    optional, folded state before
+	 *                                            the user has expressed one
 	 *                      selected()            live array of selected facet ids
 	 *                      anyGroups()           live array of group ids set to "any"
 	 *                      onChange()            selection changed, reload from offset 0
@@ -33,12 +35,20 @@
 		var label = ctx.label;
 
 		function collapsed() {
+			var stored = null;
 			try {
-				return window.localStorage.getItem(ctx.storageKey) === '1';
+				stored = window.localStorage.getItem(ctx.storageKey);
 			} catch (e) {
-				// Private browsing and similar can refuse storage; default to open.
-				return false;
+				// Private browsing and similar can refuse storage; fall through to
+				// the host's default rather than failing the render.
 			}
+
+			// Only an explicit choice overrides the default, so a host that starts
+			// folded on small screens stops doing so the moment the user unfolds it.
+			if (stored === '1') { return true; }
+			if (stored === '0') { return false; }
+
+			return ctx.defaultCollapsed ? !!ctx.defaultCollapsed() : false;
 		}
 
 		function setCollapsed(value) {

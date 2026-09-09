@@ -738,22 +738,6 @@ body.dolicatalog-open .ui-autocomplete {
 	font-size: 10px;
 }
 
-/* A withdrawn product reads as a caution rather than as a category: the pink
-   Service badge says what a thing is, this says what you cannot do with it. */
-.dcb-badge.off {
-	background: #f1f5f9;
-	color: #64748b;
-	border: 1px solid #e2e8f0;
-	padding: 0 4px;
-}
-
-/* Dimmed, so a list mixing traded and withdrawn products can be read at a
-   glance without checking every badge. */
-.dcb-card.unavailable .dcb-media,
-.dcb-card.unavailable .dcb-title,
-.dcb-card.unavailable .dcb-price {
-	opacity: 0.6;
-}
 
 .dcb-title {
 	font-weight: 600;
@@ -1155,37 +1139,66 @@ body.dolicatalog-open .ui-autocomplete {
 	top: 0;
 	max-height: 76vh;
 	overflow-y: auto;
+	z-index: 2;
 }
 
 .dolicatalog-side .dolicatalog-facets { margin: 0; }
 
-/* Too narrow for the label-beside-values grid the full-width page uses. */
-.dolicatalog-side .dcb-facet-group {
-	grid-template-columns: 1fr;
-	gap: 4px;
+/* Folded, all that is left of the column is its own heading, so the width goes
+   back to the items and the heading becomes a bar above them. Folding away a
+   filter should buy space for the list, not leave an empty gutter where the
+   filter used to be. It stays pinned to the top of the scroll, so reopening it
+   never means scrolling back up. */
+.dolicatalog-layout.folded {
+	grid-template-columns: minmax(0, 1fr);
+	gap: 0;
 }
 
-.dolicatalog-side .dcb-facet-group-label {
-	text-align: left;
-	line-height: 1.4;
+.dolicatalog-layout.folded .dolicatalog-side {
+	max-height: none;
+	overflow: visible;
+	margin-bottom: 8px;
 }
 
-.dolicatalog-side .dcb-facet-clear { padding-left: 0; }
+/* Only once it is genuinely a narrow column is the label worth stacking above
+   its values; across the full width they read better side by side. */
+@media (min-width: 901px) {
+	.dolicatalog-layout:not(.folded) .dcb-facet-group {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
 
-/* Narrower than this the column would squeeze the item table; stack it back
-   above the list, which is the layout the page uses anyway. */
+	.dolicatalog-layout:not(.folded) .dcb-facet-group-label {
+		text-align: left;
+		line-height: 1.4;
+	}
+
+	.dolicatalog-layout:not(.folded) .dcb-facet-clear { padding-left: 0; }
+}
+
+/* Narrower than this there is no room for a column beside the items, so the
+   panel goes back above them and folds vertically - the behaviour the phone
+   layout wants anyway, where one tap should put the products on screen. */
 @media (max-width: 900px) {
 	.dolicatalog-layout {
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr);
 		gap: 0;
 	}
 
 	.dolicatalog-side {
 		position: static;
 		max-height: none;
+		overflow: visible;
 	}
 
-	.dolicatalog-side .dolicatalog-facets { margin-bottom: 6px; }
+	.dolicatalog-side .dolicatalog-facets { margin-bottom: 8px; }
+
+	/* Folded it is a single line; pinning that costs nothing and keeps the
+	   filters reachable from anywhere in a long list. */
+	.dolicatalog-layout.folded .dolicatalog-side {
+		position: sticky;
+		top: 0;
+	}
 }
 
 /* The panel is a pale card, which sat unnoticed as a thin band but reads as a
