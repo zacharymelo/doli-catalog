@@ -1590,25 +1590,20 @@ class DoliCatalogBrowser
 	/**
 	 * SQL fragment restricting products by their sale/purchase flags.
 	 *
-	 * Documents care about one flag: a proposal needs what is for sale, a
-	 * purchase order what is for purchase, and something sold but never bought
-	 * belongs on the first without qualification. The catalogue page is not
-	 * building anything, so it asks a different question - is this still traded
-	 * at all - and passes an explicit availability instead of relying on mode.
+	 * Every caller cares about one flag: a proposal needs what is for sale, a
+	 * purchase order what is for purchase. Purchase status says nothing about
+	 * whether an item belongs in a sales catalogue - plenty of what a business
+	 * sells it never buys - so it must not narrow the page either.
 	 *
 	 * @param  string $mode         Normalised mode
-	 * @param  string $availability '' to follow the mode, 'traded' for items
-	 *                              both sold and purchased, 'all' for every
-	 *                              item whatever its flags
+	 * @param  string $availability '' to follow the mode, 'all' for every item
+	 *                              whatever its flags
 	 * @return string               SQL fragment, possibly empty
 	 */
 	private function saleStatusClause($mode, $availability = '')
 	{
 		if ($availability === 'all') {
 			return "";
-		}
-		if ($availability === 'traded') {
-			return " AND p.tosell = 1 AND p.tobuy = 1";
 		}
 
 		if ($mode === 'buy') {

@@ -91,13 +91,9 @@ $facets = GETPOST('facets', 'array:int');
 // Opt-in: archived products are hidden everywhere unless asked for.
 $includeArchived = GETPOSTINT('archived');
 
-// Only the catalogue page sends this. Documents send nothing and keep the
-// per-mode rule, so a product that is sold but never purchased stays offerable
-// on a proposal while the catalogue counts it as no longer traded.
-$availability = GETPOST('availability', 'aZ09');
-if (!in_array($availability, array('traded', 'all'), true)) {
-	$availability = '';
-}
+// Only the catalogue page sends this, and only to lift the restriction its
+// mode would otherwise apply. Everything else keeps the per-mode rule.
+$availability = GETPOST('availability', 'aZ09') === 'all' ? 'all' : '';
 
 // Attributes the caller has switched from "all" to "any". Per attribute, so
 // Thread Size can widen while Material keeps narrowing.

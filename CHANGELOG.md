@@ -6,6 +6,25 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-09-09
+
+### Fixed
+
+- **The catalogue page no longer hides what you sell but do not buy.** 1.12.0
+  made the switch cover purchase status as well, which withdrew every product
+  flagged not-for-purchase from the default listing - services, anything
+  manufactured rather than bought, a large and entirely sellable part of most
+  catalogues. Purchase status has no bearing on whether an item belongs in a
+  sales catalogue and no longer filters the page.
+
+- **The *Not for purchase* badge is gone.** On a page about what you sell it
+  labelled a distinction that does not apply there, on items that were never at
+  risk of being hidden. Only *Not for sale* remains, and only on the items the
+  switch brings in.
+
+- The switch and its setting are named for what they now do: *Show items not for
+  sale*. They previously promised purchase status too.
+
 ## [1.12.0] - 2026-09-09
 
 ### Changed
@@ -702,6 +721,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.12.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.12.1
 [1.12.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.12.0
 [1.11.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.1
 [1.11.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.0

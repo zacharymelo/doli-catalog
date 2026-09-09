@@ -407,8 +407,7 @@
 		q.set('warehouse', state.warehouse);
 		q.set('offset', state.offset);
 		if (state.archived) { q.set('archived', 1); }
-		// Always stated, so the page's rule never falls back to a document's.
-		q.set('availability', state.unavailable ? 'all' : 'traded');
+		if (state.unavailable) { q.set('availability', 'all'); }
 		state.facets.forEach(function (id) { q.append('facets[]', id); });
 		state.facetsAny.forEach(function (id) { q.append('facetsany[]', id); });
 
@@ -593,7 +592,7 @@
 	}
 
 	function productCard(p) {
-		var withdrawn = !parseInt(p.tosell, 10) || !parseInt(p.tobuy, 10);
+		var withdrawn = !parseInt(p.tosell, 10);
 		var card = make('div', 'dcb-card' + (withdrawn ? ' unavailable' : ''));
 
 		if (CFG.showImages) {
@@ -639,17 +638,13 @@
 
 		if (p.type === 1) { refLine.appendChild(make('span', 'dcb-badge', label('Services', 'Service'))); }
 
-		// Only reachable with the switch on, since nothing withdrawn is listed
-		// without it. Saying which flag is off answers the question the switch
-		// raises - why is this one here - and a withdrawn product would
-		// otherwise look identical to a live one.
+		// Only reachable with the switch on, since nothing withdrawn from sale
+		// is listed without it. It answers the question the switch raises - why
+		// is this one here - where an unmarked withdrawn product would look
+		// identical to a live one.
 		if (!parseInt(p.tosell, 10)) {
 			refLine.appendChild(make('span', 'dcb-badge off',
 				label('DoliCatalogNotForSale', 'Not for sale')));
-		}
-		if (!parseInt(p.tobuy, 10)) {
-			refLine.appendChild(make('span', 'dcb-badge off',
-				label('DoliCatalogNotForPurchase', 'Not for purchase')));
 		}
 
 		body.appendChild(refLine);
