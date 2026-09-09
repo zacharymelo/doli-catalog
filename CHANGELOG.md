@@ -6,6 +6,16 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-09-09
+
+### Changed
+
+- **The not-for-sale switch sits beside Show archived.** Grouping it with
+  Favorites and Recently used put it with two controls that change which set is
+  on screen, which was the right thought and the wrong pair: Show archived does
+  the same job it does, admitting items the catalogue otherwise keeps out of
+  sight. The two now read as what they are.
+
 ## [1.11.0] - 2026-09-09
 
 ### Added
@@ -673,6 +683,7 @@ First release.
 - No Dolibarr core file is modified and no core table is written to directly;
   lines are always created through each document class's own `addline()`.
 
+[1.11.1]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.1
 [1.11.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.11.0
 [1.10.0]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.10.0
 [1.9.2]: https://github.com/zacharymelo/doli-catalog/releases/tag/v1.9.2

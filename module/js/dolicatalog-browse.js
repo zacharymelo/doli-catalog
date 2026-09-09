@@ -264,6 +264,9 @@
 		var archived = el('dcb-archived');
 		if (archived) { archived.checked = !!state.archived; }
 
+		var unavailable = el('dcb-unavailable');
+		if (unavailable) { unavailable.checked = !!state.unavailable; }
+
 
 		var wh = document.querySelector('[name="dcb_warehouse"]');
 		if (wh) {
@@ -475,36 +478,7 @@
 		var tabs = make('div', 'dolicatalog-tabs');
 		if (CFG.enableFavorites) { tabs.appendChild(tab(label('DoliCatalogFavorites', 'Favorites'), 'fa-star', 'favorites')); }
 		if (CFG.enableRecent) { tabs.appendChild(tab(label('DoliCatalogRecent', 'Recently used'), 'fa-history', 'recent')); }
-		tabs.appendChild(availabilityToggle());
 		host.appendChild(tabs);
-	}
-
-	/**
-	 * Shows or hides items withdrawn from sale or purchase.
-	 *
-	 * Rebuilt with the tabs on every render, so it always reflects the state
-	 * rather than needing to be kept in step with it.
-	 *
-	 * @return {Element} Checkbox and its label
-	 */
-	function availabilityToggle() {
-		var wrap = make('label', 'dolicatalog-archived-toggle dcb-availability');
-		wrap.title = label('DoliCatalogShowUnavailableTooltip',
-			'Include products and services whose sale or purchase flag is off.');
-
-		var box = document.createElement('input');
-		box.type = 'checkbox';
-		box.checked = !!state.unavailable;
-		box.addEventListener('change', function () {
-			state.unavailable = box.checked ? 1 : 0;
-			state.offset = 0;
-			load();
-		});
-
-		wrap.appendChild(box);
-		wrap.appendChild(document.createTextNode(' ' + label('DoliCatalogShowUnavailable', 'Show items not for sale or purchase')));
-
-		return wrap;
 	}
 
 	function tab(text, icon, view) {
@@ -908,6 +882,15 @@
 		if (arch) {
 			arch.addEventListener('change', function () {
 				state.archived = arch.checked ? 1 : 0;
+				state.offset = 0;
+				load();
+			});
+		}
+
+		var unavail = el('dcb-unavailable');
+		if (unavail) {
+			unavail.addEventListener('change', function () {
+				state.unavailable = unavail.checked ? 1 : 0;
 				state.offset = 0;
 				load();
 			});

@@ -91,6 +91,14 @@ if (getDolGlobalInt('DOLICATALOG_ARCHIVED_CATEGORY') > 0) {
 	print '</label>';
 }
 
+// Sits with Show archived: both admit items the catalogue otherwise keeps out
+// of sight, so they read as a pair. Always offered, unlike its neighbour, since
+// the sale and purchase flags exist on every product.
+print '<label class="dolicatalog-archived-toggle" title="'.dol_escape_htmltag($langs->trans('DoliCatalogShowUnavailableTooltip')).'">';
+print '<input type="checkbox" id="dcb-unavailable"> ';
+print dol_escape_htmltag($langs->trans('DoliCatalogShowUnavailable'));
+print '</label>';
+
 print '</div>';
 
 print '<div class="dolicatalog-browse-crumbs" id="dcb-breadcrumb"></div>';

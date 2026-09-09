@@ -1243,13 +1243,3 @@ body.dolicatalog-open .ui-autocomplete {
 		color: #e2e8f0;
 	}
 }
-
-
-/* The availability switch rides with the Favorites and Recently used buttons:
-   all three change which items the page is showing, where the toolbar controls
-   above filter within a set. It is a label, not a button, so it needs its own
-   alignment to sit on that line. */
-.dolicatalog-tabs .dcb-availability {
-	margin-left: 4px;
-	padding: 4px 2px;
-}

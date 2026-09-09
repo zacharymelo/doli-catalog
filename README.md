@@ -68,15 +68,14 @@ onboarding staff who know the categories but not the product codes.
 Searching from this page always searches the whole catalogue, even while inside
 a folder.
 
-A switch beside **Favorites** and **Recently used** includes items that are
-**not for sale or not for purchase**, which the page otherwise hides. Use it
-when the catalogue is a place to look something up rather than a list of what
-you currently trade. Withdrawn items are badged and dimmed so they are never
-mistaken for live ones, and folder counts and tag filters follow the switch. It
-is offered on this page only: pickers inside a document never show withdrawn
-items, and the line adder refuses them outright. Its starting position is set by
-**Show items not for sale or purchase** in module setup; the checkbox overrides
-it for whoever is looking.
+A switch beside **Show archived** includes items that are **not for sale or not
+for purchase**, which the page otherwise hides. Use it when the catalogue is a
+place to look something up rather than a list of what you currently trade.
+Withdrawn items are badged and dimmed so they are never mistaken for live ones,
+and folder counts and tag filters follow the switch. It is offered on this page
+only: pickers inside a document never show withdrawn items, and the line adder
+refuses them outright. Its starting position is set by **Show items not for sale
+or purchase** in module setup; the checkbox overrides it for whoever is looking.
 
 ### The Back button
 
